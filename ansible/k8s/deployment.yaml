@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: atlas-service
+  labels:
+    app: atlas-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: atlas-service
+  template:
+    metadata:
+      labels:
+        app: atlas-service
+    spec:
+      containers:
+      - name: atlas-service
+        image: atlas-service:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8000
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 2
