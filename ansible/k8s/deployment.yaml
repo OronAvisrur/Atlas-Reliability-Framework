@@ -15,13 +15,20 @@ spec:
       initContainers:
       - name: ollama-pull
         image: ollama/ollama:latest
-        command: ["ollama", "pull", "llama3.2"]
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            ollama serve &
+            sleep 5
+            ollama pull gemma3:270m
+            kill %1 || true
         volumeMounts:
         - name: ollama-data
           mountPath: /root/.ollama
       containers:
       - name: atlas-app
         image: atlas-service:latest
+        imagePullPolicy: Never
         ports:
         - containerPort: 8000
         livenessProbe:

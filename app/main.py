@@ -75,7 +75,7 @@ async def search_movies(request: MovieRequest):
             ollama_response = await client.post(
                 f"{OLLAMA_BASE_URL}/api/generate",
                 json={
-                    "model": "llama3.2",
+                    "model": "gemma3:270m",
                     "prompt": f"Extract 3-5 keywords for searching movies based on: {request.description}. Return only keywords separated by spaces.",
                     "stream": False
                 },
