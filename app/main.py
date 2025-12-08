@@ -3,7 +3,7 @@ from datetime import datetime
 import random
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 
-app = FastAPI(title="Atlas Reliability Service")
+app = FastAPI(title="Atlas Reliability Framework")
 
 request_count = Counter(
     'http_requests_total',
