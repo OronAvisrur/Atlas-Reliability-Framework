@@ -1,14 +1,23 @@
 # Atlas Reliability Framework
 
-FastAPI service with Ollama LLM integration for movie recommendations, deployed on Kubernetes with high availability and monitoring.
+FastAPI service with Ollama LLM integration for movie search, deployed on Kubernetes with high availability and monitoring.
 
 ## Architecture
 
-- **FastAPI** - REST API server
-- **Ollama (llama3.2)** - LLM for extracting search keywords
+- **FastAPI** - REST API with clean architecture
+- **Ollama (gemma3:270m)** - LLM for keyword extraction
 - **IMDb API** - Movie database search
 - **Prometheus** - Metrics collection
-- **Kubernetes** - Container orchestration with 3 replicas
+- **Kubernetes (K3s)** - Container orchestration with 3 replicas
+
+## Project Structure
+```
+app/
+├── api/routes/     # HTTP endpoints
+├── core/           # Config & metrics
+├── models/         # Pydantic schemas
+└── services/       # Business logic
+```
 
 ## Prerequisites
 
@@ -37,60 +46,43 @@ curl http://localhost:30080/health
 
 ## API Endpoints
 
-### GET /health
-Health check endpoint
-```bash
-curl http://localhost:30080/health
-```
+### GET /
+Root endpoint
 
-### GET /data
-Service information
-```bash
-curl http://localhost:30080/data
-```
+### GET /health
+Health check for Kubernetes probes
+
+### GET /metrics
+Prometheus metrics
 
 ### POST /movies/search
 Search movies using natural language
 ```bash
 curl -X POST http://localhost:30080/movies/search \
   -H "Content-Type: application/json" \
-  -d '{"description": "exciting sci-fi movie with time travel"}'
-```
-
-### GET /fail
-Simulate failures (30% error rate, 20% latency)
-```bash
-curl http://localhost:30080/fail
-```
-
-### GET /metrics
-Prometheus metrics
-```bash
-curl http://localhost:30080/metrics
+  -d '{"description": "action movie with superheroes"}'
 ```
 
 ## Testing
 ```bash
-pip install -r requirements.txt
-pip install pytest pytest-asyncio pyyaml
-pytest
+pytest tests/
 ```
 
 ## How It Works
 
 1. User sends movie description to `/movies/search`
-2. Ollama (llama3.2) extracts search keywords
+2. Ollama extracts search keywords from description
 3. Keywords sent to IMDb API
-4. Top 10 results returned to user
+4. Top 10 results returned
 
 ## Monitoring
 
-- Prometheus metrics exposed at `/metrics`
-- Kubernetes liveness/readiness probes on `/health`
-- Self-healing: pods restart on probe failures
+- Prometheus metrics at `/metrics`
+- Kubernetes liveness/readiness probes
+- Request count, latency, and external API metrics
 
 ## High Availability
 
 - 3 replicas for fault tolerance
 - Ollama sidecar in each pod
-- Automatic failover on pod failure
+- Automatic restart on health check failure
