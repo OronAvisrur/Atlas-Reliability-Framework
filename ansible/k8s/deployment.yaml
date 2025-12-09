@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: atlas-service
+  labels:
+    app: atlas-service
 spec:
   replicas: 3
   selector:
@@ -43,6 +45,13 @@ spec:
             port: 8000
           initialDelaySeconds: 10
           periodSeconds: 5
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
       - name: ollama
         image: ollama/ollama:latest
         ports:
@@ -50,6 +59,13 @@ spec:
         volumeMounts:
         - name: ollama-data
           mountPath: /root/.ollama
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
       volumes:
       - name: ollama-data
         emptyDir: {}
