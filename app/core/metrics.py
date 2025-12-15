@@ -32,6 +32,12 @@ external_api_duration_seconds = Histogram(
     ["service"]
 )
 
+authenticated_requests_total = Counter(
+    "authenticated_requests_total",
+    "Total authenticated requests",
+    ["username"]
+)
+
 
 def record_request(method: str, endpoint: str, status: int) -> None:
     http_requests_total.labels(method=method, endpoint=endpoint, status=status).inc()
@@ -47,6 +53,10 @@ def record_external_call(service: str, status: Literal["success", "failure"]) ->
 
 def record_external_call_duration(service: str, duration: float) -> None:
     external_api_duration_seconds.labels(service=service).observe(duration)
+
+
+def record_authenticated_request(username: str) -> None:
+    authenticated_requests_total.labels(username=username).inc()
 
 
 def get_metrics() -> bytes:
