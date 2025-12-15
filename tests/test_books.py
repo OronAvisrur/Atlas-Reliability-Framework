@@ -11,6 +11,15 @@ client = TestClient(app)
 
 
 @pytest.fixture
+def mock_keywords():
+    return {
+        "keyword_1": "action",
+        "keyword_2": "superhero",
+        "keyword_3": "magic"
+    }
+
+
+@pytest.fixture
 def mock_google_books_result():
     return {
         "total_items": 50,
@@ -34,79 +43,70 @@ def mock_google_books_result():
 
 
 class TestBooksRouter:
-    def test_search_books_success(self, mock_google_books_result):
-        with patch("app.api.routes.books.google_books_service.search_books", new_callable=AsyncMock) as mock_search:
-            mock_search.return_value = mock_google_books_result
-            
-            response = client.post(
-                "/search",
-                json={
-                    "keyword_1": "action",
-                    "keyword_2": "superhero",
-                    "keyword_3": "comics"
-                }
-            )
-            
-            assert response.status_code == 200
-            data = response.json()
-            assert data["total_items"] == 50
-            assert data["query_keywords"] == "action superhero comics"
-            assert len(data["items"]) == 2
-            assert data["items"][0]["title"] == "Book 1"
+    def test_search_books_success(self, mock_keywords, mock_google_books_result):
+        with patch("app.api.routes.books.ollama_service.extract_keywords", new_callable=AsyncMock) as mock_ollama:
+            with patch("app.api.routes.books.google_books_service.search_books", new_callable=AsyncMock) as mock_google:
+                mock_ollama.return_value = mock_keywords
+                mock_google.return_value = mock_google_books_result
+                
+                response = client.post(
+                    "/search",
+                    json={"description": "I am looking for action books with superheroes and magic"}
+                )
+                
+                assert response.status_code == 200
+                data = response.json()
+                assert data["total_items"] == 50
+                assert data["query_keywords"] == "action superhero magic"
+                assert len(data["items"]) == 2
+                assert data["items"][0]["title"] == "Book 1"
     
-    def test_search_books_empty_results(self):
-        with patch("app.api.routes.books.google_books_service.search_books", new_callable=AsyncMock) as mock_search:
-            mock_search.return_value = {"total_items": 0, "items": []}
-            
-            response = client.post(
-                "/search",
-                json={
-                    "keyword_1": "xyz",
-                    "keyword_2": "abc",
-                    "keyword_3": "def"
-                }
-            )
-            
-            assert response.status_code == 200
-            data = response.json()
-            assert data["total_items"] == 0
-            assert len(data["items"]) == 0
+    def test_search_books_empty_results(self, mock_keywords):
+        with patch("app.api.routes.books.ollama_service.extract_keywords", new_callable=AsyncMock) as mock_ollama:
+            with patch("app.api.routes.books.google_books_service.search_books", new_callable=AsyncMock) as mock_google:
+                mock_ollama.return_value = mock_keywords
+                mock_google.return_value = {"total_items": 0, "items": []}
+                
+                response = client.post(
+                    "/search",
+                    json={"description": "Some random description"}
+                )
+                
+                assert response.status_code == 200
+                data = response.json()
+                assert data["total_items"] == 0
+                assert len(data["items"]) == 0
     
-    def test_search_books_invalid_request_empty_keyword(self):
+    def test_search_books_invalid_request_too_short(self):
         response = client.post(
             "/search",
-            json={
-                "keyword_1": "",
-                "keyword_2": "superhero",
-                "keyword_3": "comics"
-            }
+            json={"description": "ab"}
         )
         
         assert response.status_code == 422
     
-    def test_search_books_service_error(self):
-        with patch("app.api.routes.books.google_books_service.search_books", new_callable=AsyncMock) as mock_search:
-            mock_search.side_effect = Exception("API Error")
+    def test_search_books_ollama_error(self):
+        with patch("app.api.routes.books.ollama_service.extract_keywords", new_callable=AsyncMock) as mock_ollama:
+            mock_ollama.side_effect = Exception("Ollama Error")
             
             response = client.post(
                 "/search",
-                json={
-                    "keyword_1": "action",
-                    "keyword_2": "superhero",
-                    "keyword_3": "comics"
-                }
+                json={"description": "I want action books"}
             )
             
             assert response.status_code == 500
-            assert "API Error" in response.json()["detail"]
+            assert "Ollama Error" in response.json()["detail"]
     
-    def test_search_books_missing_keyword(self):
-        response = client.post(
-            "/search",
-            json={
-                "keyword_1": "action",
-                "keyword_2": "superhero"
-            }
-        )
-        
-        assert response.status_code == 422
+    def test_search_books_google_error(self, mock_keywords):
+        with patch("app.api.routes.books.ollama_service.extract_keywords", new_callable=AsyncMock) as mock_ollama:
+            with patch("app.api.routes.books.google_books_service.search_books", new_callable=AsyncMock) as mock_google:
+                mock_ollama.return_value = mock_keywords
+                mock_google.side_effect = Exception("Google API Error")
+                
+                response = client.post(
+                    "/search",
+                    json={"description": "I want action books"}
+                )
+                
+                assert response.status_code == 500
+                assert "Google API Error" in response.json()["detail"]

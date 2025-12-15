@@ -18,9 +18,7 @@ class FailureResponse(BaseModel):
 
 
 class BookSearchRequest(BaseModel):
-    keyword_1: str = Field(min_length=1, max_length=100)
-    keyword_2: str = Field(min_length=1, max_length=100)
-    keyword_3: str = Field(min_length=1, max_length=100)
+    description: str = Field(min_length=3, max_length=500)
 
 
 class BookResult(BaseModel):

@@ -42,30 +42,18 @@ class TestFailureResponse:
 class TestBookSearchRequest:
     def test_valid_book_search_request(self):
         request = BookSearchRequest(
-            keyword_1="action",
-            keyword_2="superhero",
-            keyword_3="comics"
+            description="I am looking for action books that has super heros and magic"
         )
         
-        assert request.keyword_1 == "action"
-        assert request.keyword_2 == "superhero"
-        assert request.keyword_3 == "comics"
+        assert request.description == "I am looking for action books that has super heros and magic"
     
-    def test_book_search_request_empty_keyword_fails(self):
+    def test_book_search_request_too_short_fails(self):
         with pytest.raises(ValueError):
-            BookSearchRequest(
-                keyword_1="",
-                keyword_2="superhero",
-                keyword_3="comics"
-            )
+            BookSearchRequest(description="ab")
     
-    def test_book_search_request_too_long_keyword_fails(self):
+    def test_book_search_request_too_long_fails(self):
         with pytest.raises(ValueError):
-            BookSearchRequest(
-                keyword_1="a" * 101,
-                keyword_2="superhero",
-                keyword_3="comics"
-            )
+            BookSearchRequest(description="a" * 501)
 
 
 class TestBookResult:
@@ -103,19 +91,19 @@ class TestBookSearchResponse:
         
         response = BookSearchResponse(
             total_items=2,
-            query_keywords="action superhero comics",
+            query_keywords="action superhero magic",
             items=books
         )
         
         assert response.total_items == 2
-        assert response.query_keywords == "action superhero comics"
+        assert response.query_keywords == "action superhero magic"
         assert len(response.items) == 2
         assert response.items[0].title == "Book 1"
     
     def test_book_search_response_empty_items(self):
         response = BookSearchResponse(
             total_items=0,
-            query_keywords="nonexistent",
+            query_keywords="nonexistent words here",
             items=[]
         )
         
