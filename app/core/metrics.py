@@ -49,5 +49,5 @@ def record_external_call_duration(service: str, duration: float) -> None:
     external_api_duration_seconds.labels(service=service).observe(duration)
 
 
-def get_metrics() -> str:
-    return generate_latest().decode("utf-8")
+def get_metrics() -> bytes:
+    return generate_latest()

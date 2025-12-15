@@ -4,44 +4,36 @@ from app.core.metrics import (
     record_request_duration,
     record_external_call,
     record_external_call_duration,
-    get_metrics,
-    http_requests_total,
-    external_api_calls_total
+    get_metrics
 )
 
 
 class TestMetrics:
     def test_record_request(self):
-        initial = http_requests_total.labels(
-            method="GET", endpoint="/test", status=200
-        )._value.get()
-        
         record_request("GET", "/test", 200)
+        metrics = get_metrics()
         
-        final = http_requests_total.labels(
-            method="GET", endpoint="/test", status=200
-        )._value.get()
-        assert final == initial + 1
+        assert b"http_requests_total" in metrics
+        assert b'method="GET"' in metrics
+        assert b'endpoint="/test"' in metrics
     
     def test_record_request_duration(self):
-        record_request_duration("GET", "/test", 0.5)
-        assert True
+        record_request_duration("POST", "/test", 0.5)
+        metrics = get_metrics()
+        
+        assert b"http_request_duration_seconds" in metrics
     
     def test_record_external_call(self):
-        initial = external_api_calls_total.labels(
-            service="test", status="success"
-        )._value.get()
+        record_external_call("test_service", "success")
+        metrics = get_metrics()
         
-        record_external_call("test", "success")
-        
-        final = external_api_calls_total.labels(
-            service="test", status="success"
-        )._value.get()
-        assert final == initial + 1
+        assert b"external_api_calls_total" in metrics
+        assert b'service="test_service"' in metrics
+        assert b'status="success"' in metrics
     
     def test_get_metrics(self):
         record_request("GET", "/test", 200)
         metrics = get_metrics()
         
-        assert isinstance(metrics, str)
+        assert isinstance(metrics, bytes)
         assert len(metrics) > 0

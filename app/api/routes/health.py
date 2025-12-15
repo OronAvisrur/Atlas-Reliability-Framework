@@ -17,6 +17,6 @@ async def health():
     return HealthResponse(status="healthy")
 
 
-@router.get("/metrics", response_class=Response)
+@router.get("/metrics")
 async def metrics():
-    return Response(content=get_metrics(), media_type="text/plain")
+    return Response(content=get_metrics(), media_type="text/plain; charset=utf-8")
