@@ -3,14 +3,13 @@ from fastapi.testclient import TestClient
 from unittest.mock import Mock, patch
 
 from app.main import app
-from app.db.models import User
 
 client = TestClient(app)
 
 
 @pytest.fixture
 def mock_current_user():
-    return User(id=1, username="testuser", hashed_password="hash", is_active=True)
+    return {"id": 1, "username": "testuser", "is_active": True}
 
 
 @pytest.fixture
@@ -52,13 +51,13 @@ def test_books_search_with_valid_token(mock_current_user, valid_token):
 
 
 def test_books_search_inactive_user(valid_token):
-    inactive_user = User(id=1, username="inactive", hashed_password="hash", is_active=False)
-    
     with patch("app.core.dependencies.verify_token", return_value="inactive"):
-        with patch("app.core.dependencies.get_db") as mock_db:
-            mock_session = Mock()
-            mock_session.query.return_value.filter.return_value.first.return_value = inactive_user
-            mock_db.return_value.__next__.return_value = mock_session
+        with patch("app.core.dependencies.get_connection") as mock_get_conn:
+            mock_conn = Mock()
+            mock_cursor = Mock()
+            mock_cursor.fetchone.return_value = (1, "inactive", False)
+            mock_conn.cursor.return_value = mock_cursor
+            mock_get_conn.return_value = mock_conn
             
             response = client.post(
                 "/books/search",
