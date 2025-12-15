@@ -7,7 +7,6 @@ RUN pip install --no-cache-dir \
     uvicorn[standard]==0.24.0.post1 \
     httpx==0.25.1 \
     prometheus-client==0.19.0 \
-    sqlalchemy==2.0.23 \
     psycopg2-binary==2.9.9 \
     python-jose[cryptography]==3.3.0 \
     passlib[bcrypt]==1.7.4
