@@ -1,55 +1,66 @@
 import pytest
 from unittest.mock import Mock, MagicMock
-from sqlalchemy.orm import Session
 
 from app.services.auth_service import register_user, authenticate_user, generate_token, verify_token
-from app.db.models import User
 
 
 @pytest.fixture
-def mock_db():
-    return Mock(spec=Session)
+def mock_conn():
+    return Mock()
 
 
-def test_register_user_success(mock_db):
-    mock_db.query.return_value.filter.return_value.first.return_value = None
+@pytest.fixture
+def mock_cursor():
+    cursor = Mock()
+    cursor.fetchone = Mock()
+    cursor.close = Mock()
+    return cursor
+
+
+def test_register_user_success(mock_conn, mock_cursor):
+    mock_conn.cursor.return_value = mock_cursor
+    mock_cursor.fetchone.side_effect = [None, (1, "testuser", True)]
     
-    user = register_user(mock_db, "testuser", "password123")
+    user = register_user(mock_conn, "testuser", "password123")
     
-    mock_db.add.assert_called_once()
-    mock_db.commit.assert_called_once()
-    assert user.username == "testuser"
+    assert user["username"] == "testuser"
+    assert user["id"] == 1
+    assert user["is_active"] is True
+    mock_cursor.close.assert_called()
 
 
-def test_register_user_duplicate(mock_db):
-    existing_user = User(id=1, username="testuser", hashed_password="hash")
-    mock_db.query.return_value.filter.return_value.first.return_value = existing_user
+def test_register_user_duplicate(mock_conn, mock_cursor):
+    mock_conn.cursor.return_value = mock_cursor
+    mock_cursor.fetchone.return_value = (1,)
     
     with pytest.raises(ValueError, match="Username already exists"):
-        register_user(mock_db, "testuser", "password123")
+        register_user(mock_conn, "testuser", "password123")
 
 
-def test_authenticate_user_success(mock_db):
-    user = User(id=1, username="testuser", hashed_password="$2b$12$abcdefghijklmnopqrstuv", is_active=True)
-    mock_db.query.return_value.filter.return_value.first.return_value = user
+def test_authenticate_user_success(mock_conn, mock_cursor):
+    mock_conn.cursor.return_value = mock_cursor
+    hashed = "$2b$12$abcdefghijklmnopqrstuv"
+    mock_cursor.fetchone.return_value = (1, "testuser", hashed, True)
     
     with pytest.raises(ValueError):
-        authenticate_user(mock_db, "testuser", "wrongpassword")
+        authenticate_user(mock_conn, "testuser", "wrongpassword")
 
 
-def test_authenticate_user_not_found(mock_db):
-    mock_db.query.return_value.filter.return_value.first.return_value = None
+def test_authenticate_user_not_found(mock_conn, mock_cursor):
+    mock_conn.cursor.return_value = mock_cursor
+    mock_cursor.fetchone.return_value = None
     
     with pytest.raises(ValueError, match="Invalid credentials"):
-        authenticate_user(mock_db, "nonexistent", "password123")
+        authenticate_user(mock_conn, "nonexistent", "password123")
 
 
-def test_authenticate_user_inactive(mock_db):
-    user = User(id=1, username="testuser", hashed_password="hash", is_active=False)
-    mock_db.query.return_value.filter.return_value.first.return_value = user
+def test_authenticate_user_inactive(mock_conn, mock_cursor):
+    mock_conn.cursor.return_value = mock_cursor
+    hashed = "$2b$12$abcdefghijklmnopqrstuv"
+    mock_cursor.fetchone.return_value = (1, "testuser", hashed, False)
     
     with pytest.raises(ValueError, match="User is inactive"):
-        authenticate_user(mock_db, "testuser", "password123")
+        authenticate_user(mock_conn, "testuser", "password123")
 
 
 def test_generate_token():
