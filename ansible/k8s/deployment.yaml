@@ -15,6 +15,36 @@ spec:
         app: atlas-service
     spec:
       initContainers:
+      - name: wait-for-postgres
+        image: postgres:15-alpine
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            until pg_isready -h postgres.default.svc.cluster.local -p 5432 -U atlasuser; do
+              echo "Waiting for PostgreSQL..."
+              sleep 2
+            done
+        env:
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
+      - name: init-db-schema
+        image: postgres:15-alpine
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres.default.svc.cluster.local -U atlasuser -d atlasdb -f /schema/schema.sql || true
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
+        volumeMounts:
+        - name: db-schema
+          mountPath: /schema
       - name: ollama-pull
         image: ollama/ollama:latest
         command: ["/bin/sh", "-c"]
@@ -33,6 +63,9 @@ spec:
         imagePullPolicy: Never
         ports:
         - containerPort: 8000
+        env:
+        - name: DATABASE_URL
+          value: postgresql://atlasuser:atlaspass123@postgres.default.svc.cluster.local:5432/atlasdb
         livenessProbe:
           httpGet:
             path: /health
@@ -69,3 +102,6 @@ spec:
       volumes:
       - name: ollama-data
         emptyDir: {}
+      - name: db-schema
+        configMap:
+          name: db-schema
