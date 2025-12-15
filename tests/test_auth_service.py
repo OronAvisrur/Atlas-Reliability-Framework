@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, patch
 
 from app.services.auth_service import register_user, authenticate_user, generate_token, verify_token
 
@@ -18,15 +18,16 @@ def mock_cursor():
 
 
 def test_register_user_success(mock_conn, mock_cursor):
-    mock_conn.cursor.return_value = mock_cursor
-    mock_cursor.fetchone.side_effect = [None, (1, "testuser", True)]
-    
-    user = register_user(mock_conn, "testuser", "password123")
-    
-    assert user["username"] == "testuser"
-    assert user["id"] == 1
-    assert user["is_active"] is True
-    mock_cursor.close.assert_called()
+    with patch("app.services.auth_service.hash_password", return_value="hashed_pass"):
+        mock_conn.cursor.return_value = mock_cursor
+        mock_cursor.fetchone.side_effect = [None, (1, "testuser", True)]
+        
+        user = register_user(mock_conn, "testuser", "password123")
+        
+        assert user["username"] == "testuser"
+        assert user["id"] == 1
+        assert user["is_active"] is True
+        mock_cursor.close.assert_called()
 
 
 def test_register_user_duplicate(mock_conn, mock_cursor):
@@ -38,12 +39,12 @@ def test_register_user_duplicate(mock_conn, mock_cursor):
 
 
 def test_authenticate_user_success(mock_conn, mock_cursor):
-    mock_conn.cursor.return_value = mock_cursor
-    hashed = "$2b$12$abcdefghijklmnopqrstuv"
-    mock_cursor.fetchone.return_value = (1, "testuser", hashed, True)
-    
-    with pytest.raises(ValueError):
-        authenticate_user(mock_conn, "testuser", "wrongpassword")
+    with patch("app.services.auth_service.verify_password", return_value=False):
+        mock_conn.cursor.return_value = mock_cursor
+        mock_cursor.fetchone.return_value = (1, "testuser", "hashed", True)
+        
+        with pytest.raises(ValueError, match="Invalid credentials"):
+            authenticate_user(mock_conn, "testuser", "wrongpassword")
 
 
 def test_authenticate_user_not_found(mock_conn, mock_cursor):
@@ -55,12 +56,12 @@ def test_authenticate_user_not_found(mock_conn, mock_cursor):
 
 
 def test_authenticate_user_inactive(mock_conn, mock_cursor):
-    mock_conn.cursor.return_value = mock_cursor
-    hashed = "$2b$12$abcdefghijklmnopqrstuv"
-    mock_cursor.fetchone.return_value = (1, "testuser", hashed, False)
-    
-    with pytest.raises(ValueError, match="User is inactive"):
-        authenticate_user(mock_conn, "testuser", "password123")
+    with patch("app.services.auth_service.verify_password", return_value=True):
+        mock_conn.cursor.return_value = mock_cursor
+        mock_cursor.fetchone.return_value = (1, "testuser", "hashed", False)
+        
+        with pytest.raises(ValueError, match="User is inactive"):
+            authenticate_user(mock_conn, "testuser", "password123")
 
 
 def test_generate_token():
