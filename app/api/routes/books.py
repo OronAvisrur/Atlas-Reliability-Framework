@@ -1,13 +1,17 @@
+import time
 from fastapi import APIRouter, HTTPException
 from app.models.schemas import BookSearchRequest, BookSearchResponse, BookResult
 from app.services.ollama_service import ollama_service
 from app.services.google_books_service import google_books_service
+from app.core.metrics import record_request, record_request_duration
 
 router = APIRouter()
 
 
 @router.post("/search", response_model=BookSearchResponse)
 async def search_books(request: BookSearchRequest):
+    start = time.time()
+    
     try:
         keywords = await ollama_service.extract_keywords(request.description)
         
@@ -26,6 +30,9 @@ async def search_books(request: BookSearchRequest):
         
         query_keywords = f"{keywords['keyword_1']} {keywords['keyword_2']} {keywords['keyword_3']}"
         
+        record_request("POST", "/books/search", 200)
+        record_request_duration("POST", "/books/search", time.time() - start)
+        
         return BookSearchResponse(
             total_items=result["total_items"],
             query_keywords=query_keywords,
@@ -33,4 +40,6 @@ async def search_books(request: BookSearchRequest):
         )
     
     except Exception as e:
+        record_request("POST", "/books/search", 500)
+        record_request_duration("POST", "/books/search", time.time() - start)
         raise HTTPException(status_code=500, detail=str(e))

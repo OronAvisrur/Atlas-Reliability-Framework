@@ -1,5 +1,7 @@
+import time
 import httpx
-from typing import Dict, List
+from typing import Dict
+from app.core.metrics import record_external_call, record_external_call_duration
 
 
 class GoogleBooksService:
@@ -8,41 +10,51 @@ class GoogleBooksService:
         self.timeout = 10.0
     
     async def search_books(self, keywords: Dict[str, str]) -> Dict:
+        start = time.time()
         query = "+".join(keywords.values())
         
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                self.base_url,
-                params={
-                    "q": query,
-                    "maxResults": 10,
-                    "printType": "books"
-                },
-                timeout=self.timeout
-            )
-            response.raise_for_status()
-            
-            data = response.json()
-            total_items = data.get("totalItems", 0)
-            items = data.get("items", [])
-            
-            books = []
-            for item in items:
-                volume_info = item.get("volumeInfo", {})
-                image_links = volume_info.get("imageLinks", {}) or {}
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    self.base_url,
+                    params={
+                        "q": query,
+                        "maxResults": 10,
+                        "printType": "books"
+                    },
+                    timeout=self.timeout
+                )
+                response.raise_for_status()
                 
-                books.append({
-                    "title": volume_info.get("title"),
-                    "authors": volume_info.get("authors"),
-                    "description": volume_info.get("description"),
-                    "categories": volume_info.get("categories"),
-                    "thumbnail": image_links.get("thumbnail")
-                })
-            
-            return {
-                "total_items": total_items,
-                "items": books
-            }
+                data = response.json()
+                total_items = data.get("totalItems", 0)
+                items = data.get("items", [])
+                
+                books = []
+                for item in items:
+                    volume_info = item.get("volumeInfo", {})
+                    image_links = volume_info.get("imageLinks", {}) or {}
+                    
+                    books.append({
+                        "title": volume_info.get("title"),
+                        "authors": volume_info.get("authors"),
+                        "description": volume_info.get("description"),
+                        "categories": volume_info.get("categories"),
+                        "thumbnail": image_links.get("thumbnail")
+                    })
+                
+                record_external_call("google_books", "success")
+                record_external_call_duration("google_books", time.time() - start)
+                
+                return {
+                    "total_items": total_items,
+                    "items": books
+                }
+        
+        except Exception as e:
+            record_external_call("google_books", "failure")
+            record_external_call_duration("google_books", time.time() - start)
+            raise
 
 
 google_books_service = GoogleBooksService()

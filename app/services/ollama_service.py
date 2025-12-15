@@ -1,6 +1,8 @@
+import time
 import httpx
 from typing import Dict
 from app.core.config import settings
+from app.core.metrics import record_external_call, record_external_call_duration
 
 
 class OllamaService:
@@ -10,6 +12,7 @@ class OllamaService:
         self.timeout = settings.ollama_timeout
     
     async def extract_keywords(self, description: str) -> Dict[str, str]:
+        start = time.time()
         prompt = f"Extract exactly 3 keywords from this book description: {description}. Return only 3 words separated by spaces."
         
         try:
@@ -32,6 +35,9 @@ class OllamaService:
                 while len(keywords_list) < 3:
                     keywords_list.append("book")
                 
+                record_external_call("ollama", "success")
+                record_external_call_duration("ollama", time.time() - start)
+                
                 return {
                     "keyword_1": keywords_list[0],
                     "keyword_2": keywords_list[1],
@@ -39,6 +45,9 @@ class OllamaService:
                 }
         
         except Exception as e:
+            record_external_call("ollama", "failure")
+            record_external_call_duration("ollama", time.time() - start)
+            
             return {
                 "keyword_1": "fiction",
                 "keyword_2": "novel",
