@@ -11,6 +11,7 @@
         - postgres-secrets.yaml
         - postgres-statefulset.yaml
         - postgres-service.yaml
+        - db-schema-configmap.yaml
 
     - name: Wait for PostgreSQL readiness
       kubernetes.core.k8s_info:
