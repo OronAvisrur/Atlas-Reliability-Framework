@@ -19,11 +19,7 @@ class TestMainApp:
     def test_books_endpoint_registered(self):
         response = client.post(
             "/books/search",
-            json={
-                "keyword_1": "test",
-                "keyword_2": "book",
-                "keyword_3": "search"
-            }
+            json={"description": "test book search"}
         )
         assert response.status_code in [200, 500]
     

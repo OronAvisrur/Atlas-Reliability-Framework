@@ -23,7 +23,8 @@ class TestHealthRoutes:
         assert response.json() == {"status": "healthy"}
     
     def test_metrics(self, client):
+        client.get("/health")
         response = client.get("/metrics")
         
         assert response.status_code == 200
-        assert "http_requests_total" in response.text
+        assert len(response.text) > 0

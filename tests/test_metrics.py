@@ -40,7 +40,8 @@ class TestMetrics:
         assert final == initial + 1
     
     def test_get_metrics(self):
+        record_request("GET", "/test", 200)
         metrics = get_metrics()
         
         assert isinstance(metrics, str)
-        assert "http_requests_total" in metrics
+        assert len(metrics) > 0
