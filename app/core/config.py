@@ -9,9 +9,8 @@ class Settings(BaseSettings):
     ollama_model: str = "gemma3:270m"
     ollama_timeout: float = 30.0
     
-    imdb_api_key: str = "k_12345678"
-    imdb_base_url: str = "https://imdb-api.com"
-    imdb_timeout: float = 10.0
+    google_books_base_url: str = "https://www.googleapis.com/books/v1/volumes"
+    google_books_timeout: float = 10.0
     
     class Config:
         env_file = ".env"
