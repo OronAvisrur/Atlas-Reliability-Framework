@@ -1,30 +1,45 @@
-from sqlalchemy.orm import Session
+from app.core.security import hash_password, verify_password, create_access_token, decode_access_token
 from jose import JWTError
 
-from app.db.models import User
-from app.core.security import hash_password, verify_password, create_access_token, decode_access_token
 
-
-def register_user(db: Session, username: str, password: str) -> User:
-    existing_user = db.query(User).filter(User.username == username).first()
-    if existing_user:
+def register_user(conn, username: str, password: str) -> dict:
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT id FROM users WHERE username = %s", (username,))
+    if cursor.fetchone():
+        cursor.close()
         raise ValueError("Username already exists")
     
     hashed_password = hash_password(password)
-    user = User(username=username, hashed_password=hashed_password)
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
+    cursor.execute(
+        "INSERT INTO users (username, hashed_password) VALUES (%s, %s) RETURNING id, username, is_active",
+        (username, hashed_password)
+    )
+    user = cursor.fetchone()
+    cursor.close()
+    
+    return {"id": user[0], "username": user[1], "is_active": user[2]}
 
 
-def authenticate_user(db: Session, username: str, password: str) -> User:
-    user = db.query(User).filter(User.username == username).first()
-    if not user or not verify_password(password, user.hashed_password):
+def authenticate_user(conn, username: str, password: str) -> dict:
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id, username, hashed_password, is_active FROM users WHERE username = %s",
+        (username,)
+    )
+    user = cursor.fetchone()
+    cursor.close()
+    
+    if not user:
         raise ValueError("Invalid credentials")
-    if not user.is_active:
+    
+    if not verify_password(password, user[2]):
+        raise ValueError("Invalid credentials")
+    
+    if not user[3]:
         raise ValueError("User is inactive")
-    return user
+    
+    return {"id": user[0], "username": user[1], "is_active": user[3]}
 
 
 def generate_token(username: str) -> str:
