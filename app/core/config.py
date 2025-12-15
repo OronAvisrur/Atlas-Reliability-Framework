@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     google_books_timeout: float = 10.0
     
     database_url: str = "postgresql://atlasuser:atlaspass123@postgres.default.svc.cluster.local:5432/atlasdb"
+    
+    jwt_secret_key: str = "to-change-in-production"
+    jwt_algorithm: str = "HS256"
+    jwt_expiration_minutes: int = 30
 
 
 settings = Settings()
