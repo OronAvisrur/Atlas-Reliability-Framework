@@ -1,15 +1,20 @@
 import time
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from app.models.schemas import BookSearchRequest, BookSearchResponse, BookResult
 from app.services.ollama_service import ollama_service
 from app.services.google_books_service import google_books_service
 from app.core.metrics import record_request, record_request_duration
+from app.db.models import User
+from app.core.dependencies import get_current_user
 
 router = APIRouter()
 
 
 @router.post("/search", response_model=BookSearchResponse)
-async def search_books(request: BookSearchRequest):
+async def search_books(
+    request: BookSearchRequest,
+    current_user: User = Depends(get_current_user)
+):
     start = time.time()
     
     try:
