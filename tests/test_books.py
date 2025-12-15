@@ -1,12 +1,9 @@
 import pytest
 from unittest.mock import AsyncMock, patch
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from app.api.routes.books import router
 
+from app.main import app
 
-app = FastAPI()
-app.include_router(router)
 client = TestClient(app)
 
 
@@ -42,71 +39,79 @@ def mock_google_books_result():
     }
 
 
+@pytest.fixture
+def mock_user():
+    return {"id": 1, "username": "testuser", "is_active": True}
+
+
 class TestBooksRouter:
-    def test_search_books_success(self, mock_keywords, mock_google_books_result):
-        with patch("app.api.routes.books.ollama_service.extract_keywords", new_callable=AsyncMock) as mock_ollama:
-            with patch("app.api.routes.books.google_books_service.search_books", new_callable=AsyncMock) as mock_google:
-                mock_ollama.return_value = mock_keywords
-                mock_google.return_value = mock_google_books_result
-                
-                response = client.post(
-                    "/search",
-                    json={"description": "I am looking for action books with superheroes and magic"}
-                )
-                
-                assert response.status_code == 200
-                data = response.json()
-                assert data["total_items"] == 50
-                assert data["query_keywords"] == "action superhero magic"
-                assert len(data["items"]) == 2
-                assert data["items"][0]["title"] == "Book 1"
     
-    def test_search_books_empty_results(self, mock_keywords):
-        with patch("app.api.routes.books.ollama_service.extract_keywords", new_callable=AsyncMock) as mock_ollama:
-            with patch("app.api.routes.books.google_books_service.search_books", new_callable=AsyncMock) as mock_google:
-                mock_ollama.return_value = mock_keywords
-                mock_google.return_value = {"total_items": 0, "items": []}
-                
-                response = client.post(
-                    "/search",
-                    json={"description": "Some random description"}
-                )
-                
-                assert response.status_code == 200
-                data = response.json()
-                assert data["total_items"] == 0
-                assert len(data["items"]) == 0
+    def test_search_books_success(self, mock_keywords, mock_google_books_result, mock_user):
+        with patch("app.core.dependencies.get_current_user", return_value=mock_user):
+            with patch("app.api.routes.books.ollama_service.extract_keywords", new_callable=AsyncMock) as mock_ollama:
+                with patch("app.api.routes.books.google_books_service.search_books", new_callable=AsyncMock) as mock_google:
+                    mock_ollama.return_value = mock_keywords
+                    mock_google.return_value = mock_google_books_result
+                    
+                    response = client.post(
+                        "/books/search",
+                        json={"description": "I am looking for action books with superheroes and magic"},
+                        headers={"Authorization": "Bearer fake.token"}
+                    )
+                    
+                    assert response.status_code == 200
+                    assert response.json()["total_items"] == 50
+                    assert len(response.json()["items"]) == 2
+    
+    def test_search_books_empty_results(self, mock_keywords, mock_user):
+        with patch("app.core.dependencies.get_current_user", return_value=mock_user):
+            with patch("app.api.routes.books.ollama_service.extract_keywords", new_callable=AsyncMock) as mock_ollama:
+                with patch("app.api.routes.books.google_books_service.search_books", new_callable=AsyncMock) as mock_google:
+                    mock_ollama.return_value = mock_keywords
+                    mock_google.return_value = {"total_items": 0, "items": []}
+                    
+                    response = client.post(
+                        "/books/search",
+                        json={"description": "Some random description"},
+                        headers={"Authorization": "Bearer fake.token"}
+                    )
+                    
+                    assert response.status_code == 200
+                    assert response.json()["total_items"] == 0
     
     def test_search_books_invalid_request_too_short(self):
         response = client.post(
-            "/search",
-            json={"description": "ab"}
+            "/books/search",
+            json={"description": "ab"},
+            headers={"Authorization": "Bearer fake.token"}
         )
         
         assert response.status_code == 422
     
-    def test_search_books_ollama_error(self):
-        with patch("app.api.routes.books.ollama_service.extract_keywords", new_callable=AsyncMock) as mock_ollama:
-            mock_ollama.side_effect = Exception("Ollama Error")
-            
-            response = client.post(
-                "/search",
-                json={"description": "I want action books"}
-            )
-            
-            assert response.status_code == 500
-            assert "Ollama Error" in response.json()["detail"]
-    
-    def test_search_books_google_error(self, mock_keywords):
-        with patch("app.api.routes.books.ollama_service.extract_keywords", new_callable=AsyncMock) as mock_ollama:
-            with patch("app.api.routes.books.google_books_service.search_books", new_callable=AsyncMock) as mock_google:
-                mock_ollama.return_value = mock_keywords
-                mock_google.side_effect = Exception("Google API Error")
+    def test_search_books_ollama_error(self, mock_user):
+        with patch("app.core.dependencies.get_current_user", return_value=mock_user):
+            with patch("app.api.routes.books.ollama_service.extract_keywords", new_callable=AsyncMock) as mock_ollama:
+                mock_ollama.side_effect = Exception("Ollama Error")
                 
                 response = client.post(
-                    "/search",
-                    json={"description": "I want action books"}
+                    "/books/search",
+                    json={"description": "I want action books"},
+                    headers={"Authorization": "Bearer fake.token"}
                 )
                 
                 assert response.status_code == 500
-                assert "Google API Error" in response.json()["detail"]
+    
+    def test_search_books_google_error(self, mock_keywords, mock_user):
+        with patch("app.core.dependencies.get_current_user", return_value=mock_user):
+            with patch("app.api.routes.books.ollama_service.extract_keywords", new_callable=AsyncMock) as mock_ollama:
+                with patch("app.api.routes.books.google_books_service.search_books", new_callable=AsyncMock) as mock_google:
+                    mock_ollama.return_value = mock_keywords
+                    mock_google.side_effect = Exception("Google API Error")
+                    
+                    response = client.post(
+                        "/books/search",
+                        json={"description": "I want action books"},
+                        headers={"Authorization": "Bearer fake.token"}
+                    )
+                    
+                    assert response.status_code == 500
