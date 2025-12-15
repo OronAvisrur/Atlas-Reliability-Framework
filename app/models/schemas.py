@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 
 
@@ -17,18 +17,21 @@ class FailureResponse(BaseModel):
     status: str
 
 
-class MovieSearchRequest(BaseModel):
-    description: str = Field(min_length=3, max_length=500)
+class BookSearchRequest(BaseModel):
+    keyword_1: str = Field(min_length=1, max_length=100)
+    keyword_2: str = Field(min_length=1, max_length=100)
+    keyword_3: str = Field(min_length=1, max_length=100)
 
 
-class MovieResult(BaseModel):
-    id: str
-    title: str
-    description: str
-    image: str
+class BookResult(BaseModel):
+    title: Optional[str] = None
+    authors: Optional[List[str]] = None
+    description: Optional[str] = None
+    categories: Optional[List[str]] = None
+    thumbnail: Optional[str] = None
 
 
-class MovieSearchResponse(BaseModel):
-    query: str
-    analysis: str
-    movies: List[MovieResult]
+class BookSearchResponse(BaseModel):
+    total_items: int
+    query_keywords: str
+    items: List[BookResult]
