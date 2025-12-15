@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     
     google_books_base_url: str = "https://www.googleapis.com/books/v1/volumes"
     google_books_timeout: float = 10.0
+    
+    database_url: str = "postgresql://atlasuser:atlaspass123@postgres.default.svc.cluster.local:5432/atlasdb"
 
 
 settings = Settings()
