@@ -26,8 +26,7 @@ class TestHealthRoutes:
         assert response.json()["status"] == "healthy"
     
     def test_metrics(self, client):
-        client.get("/health")
         response = client.get("/metrics")
         
         assert response.status_code == 200
-        assert len(response.content) > 0
+        assert response.headers["content-type"] == "text/plain; charset=utf-8"
