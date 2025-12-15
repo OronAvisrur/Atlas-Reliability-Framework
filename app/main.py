@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api.routes import health, movies
+from app.api.routes import health, books
 from app.core.config import settings
 
 
@@ -10,7 +10,7 @@ def create_app() -> FastAPI:
     )
     
     app.include_router(health.router, tags=["Health"])
-    app.include_router(movies.router, prefix="/movies", tags=["Movies"])
+    app.include_router(books.router, prefix="/books", tags=["Books"])
     
     return app
 
