@@ -1,0 +1,48 @@
+- name: Deploy PostgreSQL to Kubernetes
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  
+  tasks:
+    - name: Apply PostgreSQL Secret
+      kubernetes.core.k8s:
+        state: present
+        src: ../k8s/postgres-secrets.yaml
+      tags:
+        - postgres
+        - secrets
+
+    - name: Apply PostgreSQL StatefulSet
+      kubernetes.core.k8s:
+        state: present
+        src: ../k8s/postgres-statefulset.yaml
+      tags:
+        - postgres
+        - statefulset
+
+    - name: Apply PostgreSQL Service
+      kubernetes.core.k8s:
+        state: present
+        src: ../k8s/postgres-service.yaml
+      tags:
+        - postgres
+        - service
+
+    - name: Wait for PostgreSQL to be ready
+      kubernetes.core.k8s_info:
+        kind: StatefulSet
+        name: postgres
+        namespace: default
+      register: postgres_status
+      until: postgres_status.resources[0].status.readyReplicas | default(0) == 1
+      retries: 30
+      delay: 10
+      tags:
+        - postgres
+        - wait
+
+    - name: Display PostgreSQL connection info
+      debug:
+        msg: "PostgreSQL is ready at: postgres.default.svc.cluster.local:5432"
+      tags:
+        - postgres
