@@ -10,6 +10,7 @@ RUN pip install --no-cache-dir \
     psycopg2-binary==2.9.9 \
     python-jose[cryptography]==3.3.0 \
     passlib[bcrypt]==1.7.4 \
+    bcrypt==4.0.1 \
     pydantic-settings==2.1.0
 
 COPY ./app /app/app
