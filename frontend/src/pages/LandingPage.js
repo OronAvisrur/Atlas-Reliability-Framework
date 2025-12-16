@@ -57,8 +57,12 @@ function LandingPage() {
           <p className="logo-subtitle">RELIABILITY FRAMEWORK</p>
         </div>
         <div className="auth-buttons">
-          <button className="btn-secondary">Login</button>
-          <button className="btn-primary">Register</button>
+          <button className="btn-secondary" onClick={() => navigate('/login')}>
+            Login
+          </button>
+          <button className="btn-primary" onClick={() => navigate('/register')}>
+            Register
+          </button>
         </div>
       </header>
 
