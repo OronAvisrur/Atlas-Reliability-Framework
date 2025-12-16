@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: atlas-frontend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: atlas-frontend
+  template:
+    metadata:
+      labels:
+        app: atlas-frontend
+    spec:
+      containers:
+      - name: frontend
+        image: atlas-frontend:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 80
