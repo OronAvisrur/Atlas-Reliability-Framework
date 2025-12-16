@@ -1,0 +1,20 @@
+---
+- name: Deploy Full Atlas Stack
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  tasks:
+    - name: Deploy Backend
+      import_playbook: deploy-application.yml
+
+    - name: Deploy Frontend
+      import_playbook: deploy-frontend.yml
+
+    - name: Display deployment status
+      shell: kubectl get pods,svc
+      register: k8s_status
+
+    - name: Show status
+      debug:
+        msg: "{{ k8s_status.stdout_lines }}"
