@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import QueryPage from './pages/QueryPage';
 import './App.css';
 
 function ProtectedRoute({ children }) {
@@ -22,6 +23,14 @@ function AppRoutes() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route 
+        path="/query" 
+        element={
+          <ProtectedRoute>
+            <QueryPage />
+          </ProtectedRoute>
+        } 
+      />
     </Routes>
   );
 }
