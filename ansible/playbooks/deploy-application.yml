@@ -15,9 +15,7 @@
       shell: docker save {{ app_image }}:{{ app_version }} | sudo k3s ctr images import -
 
     - name: Apply Application manifests
-      kubernetes.core.k8s:
-        state: present
-        src: "../k8s/{{ item }}"
+      shell: kubectl apply -f ../k8s/{{ item }}
       loop:
         - deployment.yaml
         - service.yaml
