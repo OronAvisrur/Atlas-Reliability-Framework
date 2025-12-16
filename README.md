@@ -1,9 +1,10 @@
 # Atlas Reliability Framework
 
-FastAPI service with PostgreSQL authentication, Ollama LLM integration for book search, deployed on Kubernetes with high availability and monitoring.
+FastAPI service with PostgreSQL authentication, Ollama LLM integration for book search, deployed on Kubernetes with high availability and monitoring. Includes React frontend for user interaction.
 
 ## Architecture
 
+**Backend:**
 - **FastAPI** - REST API with clean architecture
 - **PostgreSQL** - User authentication database
 - **JWT** - Token-based authentication
@@ -13,53 +14,57 @@ FastAPI service with PostgreSQL authentication, Ollama LLM integration for book 
 - **Kubernetes (K3s)** - Container orchestration with 3 replicas
 - **Ansible** - Infrastructure automation
 
+**Frontend:**
+- **React 18** - User interface library
+- **React Router** - Client-side routing
+- **Axios** - HTTP client for API calls
+- **Context API** - Global authentication state
+- **Jest & React Testing Library** - Unit testing
+
 ## Project Structure
 ```
 atlas-reliability-framework/
-├── app/
-│   ├── api/
-│   │   └── routes/
-│   │       ├── auth.py          # Authentication endpoints
-│   │       ├── books.py         # Book search endpoints
-│   │       └── health.py        # Health check endpoints
+├── app/                             # Backend (FastAPI)
+│   ├── api/routes/
 │   ├── core/
-│   │   ├── config.py            # Application settings
-│   │   ├── dependencies.py      # JWT authentication dependency
-│   │   ├── metrics.py           # Prometheus metrics
-│   │   └── security.py          # Password hashing & JWT utils
 │   ├── db/
-│   │   ├── database.py          # PostgreSQL connection management
-│   │   └── schema.sql           # Database schema
 │   ├── models/
-│   │   ├── auth_schemas.py      # Authentication Pydantic models
-│   │   └── schemas.py           # Book search Pydantic models
 │   └── services/
-│       ├── auth_service.py      # Authentication business logic
-│       ├── google_books_service.py
-│       └── ollama_service.py
+├── frontend/                        # Frontend (React)
+│   ├── public/
+│   │   └── index.html
+│   ├── src/
+│   │   ├── pages/
+│   │   │   ├── LandingPage.js
+│   │   │   ├── LoginPage.js
+│   │   │   ├── RegisterPage.js
+│   │   │   ├── QueryPage.js
+│   │   │   └── __tests__/
+│   │   ├── services/
+│   │   │   ├── api.js
+│   │   │   ├── authService.js
+│   │   │   ├── booksService.js
+│   │   │   └── __tests__/
+│   │   ├── context/
+│   │   │   └── AuthContext.js
+│   │   ├── App.js
+│   │   └── index.js
+│   ├── package.json
+│   └── .env.example
 ├── ansible/
 │   ├── k8s/
-│   │   ├── deployment.yaml              # Application deployment
-│   │   ├── service.yaml                 # Application service
-│   │   ├── postgres-secrets.yaml        # PostgreSQL credentials
-│   │   ├── postgres-statefulset.yaml    # PostgreSQL StatefulSet
-│   │   ├── postgres-service.yaml        # PostgreSQL service
-│   │   └── db-schema-configmap.yaml     # Database schema ConfigMap
 │   ├── playbooks/
-│   │   ├── setup-infrastructure.yml     # K3s setup
-│   │   ├── setup-postgres.yml           # PostgreSQL deployment
-│   │   └── deploy-application.yml       # Application deployment
 │   ├── group_vars/
-│   ├── inventory/
-│   └── ansible.cfg
-├── tests/                       # Pytest test suite
-├── Dockerfile                   # Container image definition
-└── pytest.ini                   # Pytest configuration
+│   └── inventory/
+├── tests/                           # Backend tests
+├── Dockerfile
+└── pytest.ini
 ```
 
 ## Prerequisites
 
 - Python 3.11+
+- Node.js 16+
 - Docker
 - K3s
 - Ansible
@@ -73,61 +78,54 @@ cd ansible
 ansible-playbook playbooks/setup-postgres.yml
 ```
 
-### 2. Deploy Application
+### 2. Deploy Backend Application
 ```bash
 ansible-playbook playbooks/deploy-application.yml
 ```
 
-### 3. Verify Deployment
+### 3. Setup Frontend
+```bash
+cd frontend
+npm install
+cp .env.example .env
+# Edit .env if needed (default: REACT_APP_API_URL=http://localhost:30080)
+npm start
+```
+
+### 4. Verify Deployment
 ```bash
 kubectl get pods
 # Expected: postgres-0 (1/1 Running) + atlas-service-xxx (2/2 Running, 3 replicas)
 
 curl http://localhost:30080/health
 # Expected: {"status":"healthy"}
+
+# Frontend should be running at http://localhost:3000
 ```
 
-## Authentication Flow
+## User Flow
 
-### 1. Register User
-```bash
-curl -X POST http://localhost:30080/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "myuser",
-    "password": "mypass123"
-  }'
-```
+### 1. Landing Page
+- View system metrics (Total Requests, Active Requests, Avg Latency)
+- See feature highlights
+- Navigate to Login or Register
 
-**Response:**
-```json
-{
-  "id": 1,
-  "username": "myuser",
-  "is_active": true
-}
-```
+### 2. Register
+- Create account with username (min 3 chars) and password (min 6 chars)
+- Password confirmation validation
+- Auto-redirect to login after success
 
-### 2. Login
-```bash
-curl -X POST http://localhost:30080/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "myuser",
-    "password": "mypass123"
-  }'
-```
+### 3. Login
+- Authenticate with credentials
+- Receive JWT token (30-minute expiration)
+- Auto-redirect to query page
 
-**Response:**
-```json
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "token_type": "bearer"
-}
-```
-
-### 3. Use Protected Endpoints
-Save the `access_token` from login response and use it in subsequent requests.
+### 4. Query Page (Protected)
+- Search books using natural language description
+- AI extracts keywords via Ollama LLM
+- View search results from Google Books API
+- See book thumbnails, titles, authors, categories, descriptions
+- Logout to return to home
 
 ## API Endpoints
 
@@ -189,31 +187,27 @@ curl -X POST http://localhost:30080/books/search \
 }
 ```
 
-**Without Token:**
-```bash
-curl -X POST http://localhost:30080/books/search \
-  -H "Content-Type: application/json" \
-  -d '{"description": "action books"}'
-# Response: 401 Unauthorized
-```
-
 ## How It Works
 
 ### Book Search Flow
-1. User authenticates via `/auth/login` and receives JWT token
-2. User sends book description to `/books/search` with Bearer token
-3. JWT token validated and user retrieved from PostgreSQL
-4. Ollama LLM extracts 3 search keywords from description
-5. Keywords sent to Google Books API
-6. Top 10 results returned to user
+1. User registers via frontend → POST /auth/register
+2. User logs in via frontend → POST /auth/login → JWT token returned
+3. Token stored in localStorage and added to all API requests
+4. User enters book description in query page
+5. Frontend sends description with Bearer token → POST /books/search
+6. Backend validates JWT and retrieves user from PostgreSQL
+7. Ollama LLM extracts 3 keywords from description
+8. Keywords sent to Google Books API
+9. Top 10 results returned to frontend
+10. Results displayed in responsive card grid
 
 ### Authentication Flow
-1. User registers via `/auth/register` - password hashed with bcrypt
-2. User credentials stored in PostgreSQL
-3. User logs in via `/auth/login` - password verified
-4. JWT token generated with 30-minute expiration
-5. Token required for all `/books/*` endpoints
-6. Token validated on each request via `get_current_user` dependency
+1. User registers → password hashed with bcrypt → stored in PostgreSQL
+2. User logs in → password verified → JWT token generated (30-min expiration)
+3. Frontend stores token in localStorage
+4. Protected routes check authentication via AuthContext
+5. Unauthenticated users redirected to login page
+6. Token included in Authorization header for all protected API calls
 
 ## Database Schema
 
@@ -224,29 +218,27 @@ CREATE TABLE users (
     username VARCHAR(255) UNIQUE NOT NULL,
     hashed_password VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    is_active BOOLEAN DEFAULT TRUE
-);
+    is_active BOOLEAN DEFAULT TRUE);
 ```
 
 ## Testing
+
+### Backend Tests
 ```bash
-# Run all tests
 pytest tests/ -v
-
-# Run specific test file
-pytest tests/test_auth_service.py -v
-
-# Run with coverage
 pytest tests/ --cov=app
 ```
 
+### Frontend Tests
+```bash
+cd frontend
+npm test
+npm test -- --coverage
+```
+
 Test coverage includes:
-- Authentication service (register, login, token generation)
-- Authentication routes (register, login endpoints)
-- Protected routes (JWT validation)
-- Book search functionality
-- Health endpoints
-- Metrics collection
+- **Backend:** Authentication service, routes, book search, health, metrics
+- **Frontend:** All pages (Landing, Login, Register, Query), services (api, auth, books), AuthContext
 
 ## Monitoring
 
@@ -289,10 +281,11 @@ Available at `/metrics`:
 - **Secrets:** Kubernetes Secrets for PostgreSQL credentials
 - **SQL Injection:** Protected by psycopg2 parameterized queries
 - **Protected Endpoints:** JWT validation via FastAPI dependencies
+- **Frontend Auth:** Token stored in localStorage, included in all protected API calls
 
 ## Configuration
 
-### Environment Variables
+### Backend Environment Variables
 Configure via `app/core/config.py`:
 - `database_url` - PostgreSQL connection string
 - `jwt_secret_key` - Secret key for JWT signing
@@ -302,46 +295,71 @@ Configure via `app/core/config.py`:
 - `ollama_model` - LLM model name (gemma3:270m)
 - `google_books_base_url` - Google Books API endpoint
 
+### Frontend Environment Variables
+Configure via `frontend/.env`:
+- `REACT_APP_API_URL` - Backend API base URL (default: http://localhost:30080)
+
 ## Troubleshooting
 
-### Pods in CrashLoopBackOff
-```bash
-# Check logs
-kubectl logs <pod-name> -c atlas-app
+### Backend Issues
 
-# Check init containers
+#### Pods in CrashLoopBackOff
+```bash
+kubectl logs <pod-name> -c atlas-app
 kubectl logs <pod-name> -c wait-for-postgres
 kubectl logs <pod-name> -c init-db-schema
 ```
 
-### Authentication Errors
+#### Authentication Errors
 ```bash
-# Check PostgreSQL
 kubectl exec -it postgres-0 -- psql -U atlasuser -d atlasdb -c "SELECT * FROM users;"
-
-# Test registration
-curl -X POST http://localhost:30080/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"username": "test", "password": "test123"}'
 ```
 
-### Rebuild and Redeploy
+#### Rebuild and Redeploy
 ```bash
 cd ansible
 ansible-playbook playbooks/deploy-application.yml
 kubectl delete pods -l app=atlas-service
 ```
 
+### Frontend Issues
+
+#### Cannot connect to backend
+- Check `REACT_APP_API_URL` in `.env`
+- Verify backend is running: `curl http://localhost:30080/health`
+- Check browser console for CORS errors
+
+#### Authentication not working
+- Clear localStorage: `localStorage.clear()` in browser console
+- Check JWT token expiration (30 minutes)
+- Verify backend authentication endpoints are accessible
+
 ## Development
 
-### Local Testing
+### Backend Local Testing
 ```bash
-# Install dependencies
-pip install -r requirements.txt  # If you create one
-
-# Run tests
+pip install -r requirements.txt
 pytest tests/ -v
-
-# Run locally (without K8s)
 uvicorn app.main:app --reload
 ```
+
+### Frontend Local Development
+```bash
+cd frontend
+npm install
+npm start         # Development server at http://localhost:3000
+npm test          # Run tests
+npm run build     # Production build
+```
+
+## Color Scheme
+
+Based on Atlas logo:
+- **Navy Blue:** `#1e3a5f` (Headers, primary text)
+- **Light Blue:** `#5ba3d0` (Buttons, accents, links)
+- **Beige/Tan:** `#e8b67a` (Subtitle, username display)
+- **Light Gray:** `#f5f5f5` (Background)
+
+## License
+
+© 2024 Atlas Reliability Framework
