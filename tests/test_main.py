@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 from unittest.mock import patch
 
 from app.main import app
+from app.core.dependencies import get_current_user
 
 client = TestClient(app)
 
@@ -20,13 +21,15 @@ class TestMainApp:
     
     def test_books_endpoint_registered(self):
         mock_user = {"id": 1, "username": "testuser", "is_active": True}
-        with patch("app.core.dependencies.get_current_user", return_value=mock_user):
+        app.dependency_overrides[get_current_user] = lambda: mock_user
+        try:
             response = client.post(
                 "/books/search",
-                json={"description": "test book search"},
-                headers={"Authorization": "Bearer fake.token"}
+                json={"description": "test book search"}
             )
             assert response.status_code in [200, 500]
+        finally:
+            app.dependency_overrides = {}
     
     def test_openapi_docs_available(self):
         response = client.get("/docs")
