@@ -9,7 +9,7 @@
     - name: Build Docker image
       shell: docker build -t {{ app_image }}:{{ app_version }} .
       args:
-        chdir: "{{ playbook_dir }}/../../"
+        chdir: "{{ playbook_dir }}/../../app"
 
     - name: Import image to K3s
       shell: docker save {{ app_image }}:{{ app_version }} | sudo k3s ctr images import -
