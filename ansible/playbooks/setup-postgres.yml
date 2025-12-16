@@ -4,9 +4,7 @@
   
   tasks:
     - name: Apply PostgreSQL manifests
-      kubernetes.core.k8s:
-        state: present
-        src: "../k8s/{{ item }}"
+      shell: kubectl apply -f ../k8s/{{ item }}
       loop:
         - postgres-secrets.yaml
         - postgres-statefulset.yaml
@@ -14,11 +12,4 @@
         - db-schema-configmap.yaml
 
     - name: Wait for PostgreSQL readiness
-      kubernetes.core.k8s_info:
-        kind: StatefulSet
-        name: postgres
-        namespace: default
-      register: postgres_status
-      until: postgres_status.resources[0].status.readyReplicas | default(0) == 1
-      retries: 30
-      delay: 10
+      shell: kubectl wait --for=condition=ready pod -l app=postgres --timeout=300s
