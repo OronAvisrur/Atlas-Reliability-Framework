@@ -1,0 +1,34 @@
+---
+- name: Deploy Atlas Frontend to Kubernetes
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  tasks:
+    - name: Build frontend Docker image
+      shell: |
+        cd ../../frontend
+        docker build -t atlas-frontend:latest .
+      args:
+        executable: /bin/bash
+
+    - name: Load image into K3s
+      shell: |
+        docker save atlas-frontend:latest | sudo k3s ctr images import -
+      args:
+        executable: /bin/bash
+
+    - name: Apply frontend deployment
+      shell: kubectl apply -f ../k8s/frontend-deployment.yaml
+      args:
+        executable: /bin/bash
+
+    - name: Apply frontend service
+      shell: kubectl apply -f ../k8s/frontend-service.yaml
+      args:
+        executable: /bin/bash
+
+    - name: Wait for frontend pods to be ready
+      shell: kubectl wait --for=condition=ready pod -l app=atlas-frontend --timeout=120s
+      args:
+        executable: /bin/bash
