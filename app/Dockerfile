@@ -13,7 +13,7 @@ RUN pip install --no-cache-dir \
     bcrypt==4.0.1 \
     pydantic-settings==2.1.0
 
-COPY ./app /app/app
+COPY . /app
 
 EXPOSE 8000
 
