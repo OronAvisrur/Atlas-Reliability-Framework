@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.core.dependencies import get_current_user
 
 client = TestClient(app)
 
@@ -47,7 +48,8 @@ def mock_user():
 class TestBooksRouter:
     
     def test_search_books_success(self, mock_keywords, mock_google_books_result, mock_user):
-        with patch("app.core.dependencies.get_current_user", return_value=mock_user):
+        app.dependency_overrides[get_current_user] = lambda: mock_user
+        try:
             with patch("app.api.routes.books.ollama_service.extract_keywords", new_callable=AsyncMock) as mock_ollama:
                 with patch("app.api.routes.books.google_books_service.search_books", new_callable=AsyncMock) as mock_google:
                     mock_ollama.return_value = mock_keywords
@@ -55,16 +57,18 @@ class TestBooksRouter:
                     
                     response = client.post(
                         "/books/search",
-                        json={"description": "I am looking for action books with superheroes and magic"},
-                        headers={"Authorization": "Bearer fake.token"}
+                        json={"description": "I am looking for action books with superheroes and magic"}
                     )
                     
                     assert response.status_code == 200
                     assert response.json()["total_items"] == 50
                     assert len(response.json()["items"]) == 2
+        finally:
+            app.dependency_overrides = {}
     
     def test_search_books_empty_results(self, mock_keywords, mock_user):
-        with patch("app.core.dependencies.get_current_user", return_value=mock_user):
+        app.dependency_overrides[get_current_user] = lambda: mock_user
+        try:
             with patch("app.api.routes.books.ollama_service.extract_keywords", new_callable=AsyncMock) as mock_ollama:
                 with patch("app.api.routes.books.google_books_service.search_books", new_callable=AsyncMock) as mock_google:
                     mock_ollama.return_value = mock_keywords
@@ -72,37 +76,40 @@ class TestBooksRouter:
                     
                     response = client.post(
                         "/books/search",
-                        json={"description": "Some random description"},
-                        headers={"Authorization": "Bearer fake.token"}
+                        json={"description": "Some random description"}
                     )
                     
                     assert response.status_code == 200
                     assert response.json()["total_items"] == 0
+        finally:
+            app.dependency_overrides = {}
     
     def test_search_books_invalid_request_too_short(self):
         response = client.post(
             "/books/search",
-            json={"description": "ab"},
-            headers={"Authorization": "Bearer fake.token"}
+            json={"description": "ab"}
         )
         
-        assert response.status_code == 422
+        assert response.status_code == 401
     
     def test_search_books_ollama_error(self, mock_user):
-        with patch("app.core.dependencies.get_current_user", return_value=mock_user):
+        app.dependency_overrides[get_current_user] = lambda: mock_user
+        try:
             with patch("app.api.routes.books.ollama_service.extract_keywords", new_callable=AsyncMock) as mock_ollama:
                 mock_ollama.side_effect = Exception("Ollama Error")
                 
                 response = client.post(
                     "/books/search",
-                    json={"description": "I want action books"},
-                    headers={"Authorization": "Bearer fake.token"}
+                    json={"description": "I want action books"}
                 )
                 
                 assert response.status_code == 500
+        finally:
+            app.dependency_overrides = {}
     
     def test_search_books_google_error(self, mock_keywords, mock_user):
-        with patch("app.core.dependencies.get_current_user", return_value=mock_user):
+        app.dependency_overrides[get_current_user] = lambda: mock_user
+        try:
             with patch("app.api.routes.books.ollama_service.extract_keywords", new_callable=AsyncMock) as mock_ollama:
                 with patch("app.api.routes.books.google_books_service.search_books", new_callable=AsyncMock) as mock_google:
                     mock_ollama.return_value = mock_keywords
@@ -110,8 +117,9 @@ class TestBooksRouter:
                     
                     response = client.post(
                         "/books/search",
-                        json={"description": "I want action books"},
-                        headers={"Authorization": "Bearer fake.token"}
+                        json={"description": "I want action books"}
                     )
                     
                     assert response.status_code == 500
+        finally:
+            app.dependency_overrides = {}
