@@ -1,6 +1,6 @@
 # Atlas Reliability Framework
 
-FastAPI service with PostgreSQL authentication, Ollama LLM integration for book search, deployed on Kubernetes with high availability and monitoring. Includes React frontend for user interaction.
+FastAPI service with PostgreSQL authentication, Ollama LLM integration for book search, deployed on Kubernetes with high availability and monitoring. Includes React frontend for user interaction with Traefik Ingress routing.
 
 ## Architecture
 
@@ -16,11 +16,15 @@ FastAPI service with PostgreSQL authentication, Ollama LLM integration for book 
 
 **Frontend:**
 - **React 18** - User interface library
-- **Nginx** - Static file server and reverse proxy
+- **Nginx** - Static file server
 - **React Router** - Client-side routing
 - **Axios** - HTTP client for API calls
 - **Context API** - Global authentication state
 - **Jest & React Testing Library** - Unit testing
+
+**Networking:**
+- **Traefik Ingress** - Production-ready routing and load balancing
+- **CORS** - Cross-origin resource sharing enabled
 
 ## Project Structure
 ```
@@ -34,7 +38,7 @@ atlas-reliability-framework/
 │   └── services/
 ├── frontend/                        # Frontend (React)
 │   ├── Dockerfile                   # Frontend container image (nginx)
-│   ├── nginx.conf                   # Nginx reverse proxy config
+│   ├── nginx.conf                   # Nginx static file server config
 │   ├── public/
 │   ├── src/
 │   │   ├── pages/
@@ -48,6 +52,7 @@ atlas-reliability-framework/
 │   │   ├── service.yaml                 # Backend service
 │   │   ├── frontend-deployment.yaml     # Frontend deployment
 │   │   ├── frontend-service.yaml        # Frontend service
+│   │   ├── ingress.yaml                 # Traefik Ingress routing
 │   │   ├── postgres-secrets.yaml
 │   │   ├── postgres-statefulset.yaml
 │   │   ├── postgres-service.yaml
@@ -86,41 +91,68 @@ ansible-playbook playbooks/deploy-full-stack.yml
 
 **OR Deploy Separately:**
 ```bash
-# Backend only
 ansible-playbook playbooks/deploy-application.yml
-
-# Frontend only
 ansible-playbook playbooks/deploy-frontend.yml
 ```
 
-### 3. Verify Deployment
+### 3. Deploy Ingress
 ```bash
-kubectl get pods,svc
-# Expected: 
-# - postgres-0 (1/1 Running)
-# - atlas-service-xxx (2/2 Running, 3 replicas) 
-# - atlas-frontend-xxx (1/1 Running, 3 replicas)
+kubectl apply -f k8s/ingress.yaml
+```
 
-curl http://localhost:30080/health
-# Expected: {"status":"healthy"}
+### 4. Setup Port Forwarding
+```bash
+sudo kubectl port-forward -n kube-system service/traefik 80:80 --address 0.0.0.0
+```
 
-# Access frontend at http://localhost:30080
+### 5. Configure Hosts (Optional)
+
+**Windows (PowerShell as Administrator):**
+```powershell
+Add-Content C:\Windows\System32\drivers\etc\hosts "127.0.0.1 atlas.local"
+```
+
+**Linux/Mac:**
+```bash
+echo "127.0.0.1 atlas.local" | sudo tee -a /etc/hosts
+```
+
+### 6. Access Application
+
+- **With hosts file:** http://atlas.local
+- **Without hosts file:** http://localhost
+
+### 7. Verify Deployment
+```bash
+kubectl get pods,svc,ingress
+
+curl http://localhost/health
 ```
 
 ## Services & Ports
 
-| Service | Type | Port | NodePort | Purpose |
-|---------|------|------|----------|---------|
-| atlas-frontend | NodePort | 80 | 30080 | React UI (nginx) |
-| atlas-service | ClusterIP | 8000 | - | FastAPI Backend |
-| postgres | ClusterIP | 5432 | - | PostgreSQL Database |
+| Service | Type | Port | Purpose |
+|---------|------|------|---------|
+| atlas-frontend | ClusterIP | 80 | React UI (nginx) |
+| atlas-service | ClusterIP | 8000 | FastAPI Backend |
+| postgres | ClusterIP | 5432 | PostgreSQL Database |
+| traefik | LoadBalancer | 80 | Ingress Controller |
 
-**Important:** Frontend (nginx) serves on port 30080 and proxies API calls to backend internally.
+## Ingress Routing
+
+Traefik Ingress provides unified access on port 80:
+
+| Path | Backend | Purpose |
+|------|---------|---------|
+| `/` | atlas-frontend:80 | React application |
+| `/api/*` | atlas-service:8000 | Backend API (strips /api prefix) |
+| `/health` | atlas-service:8000 | Health check |
+| `/metrics` | atlas-service:8000 | Prometheus metrics |
 
 ## User Flow
 
 ### 1. Access Application
-- Open browser: `http://localhost:30080`
+- Open browser: `http://atlas.local` or `http://localhost`
 - View landing page with system metrics
 
 ### 2. Register
@@ -144,38 +176,63 @@ curl http://localhost:30080/health
 
 ## API Endpoints
 
-### Public Endpoints (via nginx proxy)
+### Public Endpoints
 
 #### GET /
-Landing page (served by nginx)
+Landing page
 
 #### GET /health
-Health check (proxied to backend)
+Health check
 
 #### GET /metrics
-Prometheus metrics (proxied to backend)
+Prometheus metrics
 
 #### POST /api/auth/register
-Register new user (proxied to backend /auth/register)
+Register new user
+
+**Request:**
+```json
+{
+  "username": "string",
+  "password": "string"
+}
+```
 
 #### POST /api/auth/login
-Login and receive JWT (proxied to backend /auth/login)
+Login and receive JWT
+
+**Request:**
+```json
+{
+  "username": "string",
+  "password": "string"
+}
+```
+
+**Response:**
+```json
+{
+  "access_token": "string",
+  "token_type": "bearer"
+}
+```
 
 ### Protected Endpoints (Require JWT)
 
 #### POST /api/books/search
-Search books (proxied to backend /books/search)
-- Requires `Authorization: Bearer <token>` header
-- Frontend automatically includes token from localStorage
+Search books
 
-## Nginx Reverse Proxy
+**Headers:**
+```
+Authorization: Bearer <token>
+```
 
-Frontend nginx proxies API requests:
-- `/api/*` → `http://atlas-service:8000/`
-- `/health` → `http://atlas-service:8000/health`
-- `/metrics` → `http://atlas-service:8000/metrics`
-
-This allows frontend and backend to communicate within the cluster.
+**Request:**
+```json
+{
+  "description": "action superhero books"
+}
+```
 
 ## Database Schema
 
@@ -208,7 +265,7 @@ npm test -- --coverage
 ## Monitoring
 
 ### Prometheus Metrics
-Available at `http://localhost:30080/metrics`:
+Available at `http://localhost/metrics`:
 - `http_requests_total` - Total HTTP requests
 - `http_request_duration_seconds` - Request latency
 - `active_requests` - Active requests
@@ -220,13 +277,15 @@ Available at `http://localhost:30080/metrics`:
 kubectl get pods -w
 kubectl logs -f deployment/atlas-frontend
 kubectl logs -f deployment/atlas-service
+kubectl logs -f -n kube-system deployment/traefik
 ```
 
 ## High Availability
 
 ### Application Layer
 - **Backend:** 3 replicas (FastAPI + Ollama sidecar)
-- **Frontend:** 3 replicas (nginx)
+- **Frontend:** 1 replica (nginx)
+- **Ingress:** Traefik with automatic load balancing
 - **Automatic restart** on health check failure
 - **Init containers** ensure PostgreSQL is ready
 
@@ -238,6 +297,7 @@ kubectl logs -f deployment/atlas-service
 
 - **Passwords:** Hashed with bcrypt
 - **JWT Tokens:** HS256, 30-minute expiration
+- **CORS:** Enabled for cross-origin requests
 - **Kubernetes Secrets** for PostgreSQL credentials
 - **Frontend:** Token stored in localStorage
 - **Backend:** JWT validation on protected endpoints
@@ -256,25 +316,29 @@ uvicorn main:app --reload
 ```bash
 cd frontend
 npm install
-cp .env.example .env
-# Edit REACT_APP_API_URL if needed
-npm start       # http://localhost:3000
+npm start
 npm test
 npm run build
 ```
 
 ## Troubleshooting
 
+### Ingress Issues
+```bash
+kubectl logs -n kube-system deployment/traefik
+kubectl describe ingress atlas-ingress
+```
+
 ### Backend Issues
 ```bash
-kubectl logs deployment/atlas-service
-kubectl describe pod <atlas-service-pod>
+kubectl logs -l app=atlas-service -c atlas-app
+kubectl describe deployment atlas-service
 ```
 
 ### Frontend Issues
 ```bash
-kubectl logs deployment/atlas-frontend
-# Check nginx logs for proxy errors
+kubectl logs -l app=atlas-frontend
+kubectl describe deployment atlas-frontend
 ```
 
 ### Database Issues
@@ -283,19 +347,58 @@ kubectl logs postgres-0
 kubectl exec -it postgres-0 -- psql -U atlasuser -d atlasdb
 ```
 
+### Port Forward Not Working
+```bash
+sudo kubectl port-forward -n kube-system service/traefik 80:80 --address 0.0.0.0
+```
+
+### CORS Errors
+Verify CORS middleware is enabled in `app/main.py`:
+```python
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
 ### Rebuild & Redeploy
 ```bash
 cd ansible
 ansible-playbook playbooks/deploy-full-stack.yml
+kubectl apply -f k8s/ingress.yaml
 ```
 
 ### Clear Everything
 ```bash
+kubectl delete ingress atlas-ingress
 kubectl delete deployment atlas-frontend atlas-service
 kubectl delete service atlas-frontend atlas-service
 kubectl delete statefulset postgres
 kubectl delete pvc postgres-pvc
 ```
+
+## Production Deployment (AWS EKS)
+
+### Key Differences for AWS
+
+**Ingress Controller:**
+- Replace Traefik with AWS ALB Ingress Controller
+- Update annotation: `kubernetes.io/ingress.class: alb`
+
+**Service Type:**
+- Use `type: LoadBalancer` for automatic ELB provisioning
+- Configure target groups and health checks
+
+**Storage:**
+- Replace local PVC with AWS EBS volumes
+- Use StorageClass: `gp3` or `gp2`
+
+**DNS:**
+- Configure Route53 for domain routing
+- Use ACM for SSL certificates
 
 ## Color Scheme
 
