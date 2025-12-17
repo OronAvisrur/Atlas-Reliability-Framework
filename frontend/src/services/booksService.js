@@ -4,7 +4,7 @@ import { getToken } from './authService';
 export const searchBooks = async (description) => {
   const token = getToken();
   
-  const response = await api.post('/books/search', 
+  const response = await api.post('/api/books/search', 
     { description },
     {
       headers: {

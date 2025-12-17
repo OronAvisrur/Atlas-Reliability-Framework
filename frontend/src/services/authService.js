@@ -4,7 +4,7 @@ const TOKEN_KEY = 'atlas_token';
 const USER_KEY = 'atlas_user';
 
 export const register = async (username, password) => {
-  const response = await api.post('/auth/register', {
+  const response = await api.post('/api/auth/register', {
     username,
     password
   });
@@ -12,7 +12,7 @@ export const register = async (username, password) => {
 };
 
 export const login = async (username, password) => {
-  const response = await api.post('/auth/login', {
+  const response = await api.post('/api/auth/login', {
     username,
     password
   });
