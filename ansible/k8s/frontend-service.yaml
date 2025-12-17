@@ -5,7 +5,7 @@ metadata:
   labels:
     app: atlas-frontend
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: atlas-frontend
   ports:

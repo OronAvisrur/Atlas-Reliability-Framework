@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: atlas-frontend
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: atlas-frontend
@@ -18,3 +18,4 @@ spec:
         imagePullPolicy: Never
         ports:
         - containerPort: 80
+          hostPort: 30080
