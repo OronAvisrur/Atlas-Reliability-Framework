@@ -29,13 +29,26 @@ FastAPI service with PostgreSQL authentication, Ollama LLM integration for book 
 ## Project Structure
 ```
 atlas-reliability-framework/
-├── app/                             # Backend (FastAPI)
+├── backend/                         # Backend (FastAPI)
 │   ├── Dockerfile                   # Backend container image
+│   ├── pytest.ini                   # Backend test configuration
 │   ├── api/routes/
 │   ├── core/
 │   ├── db/
 │   ├── models/
-│   └── services/
+│   ├── services/
+│   └── tests/                       # Backend unit tests (pytest)
+│       ├── test_auth_routes.py
+│       ├── test_auth_service.py
+│       ├── test_books.py
+│       ├── test_config.py
+│       ├── test_google_books_service.py
+│       ├── test_health_routes.py
+│       ├── test_main.py
+│       ├── test_metrics.py
+│       ├── test_ollama_service.py
+│       ├── test_protected_routes.py
+│       └── test_schemas.py
 ├── frontend/                        # Frontend (React)
 │   ├── Dockerfile                   # Frontend container image (nginx)
 │   ├── nginx.conf                   # Nginx static file server config
@@ -44,7 +57,7 @@ atlas-reliability-framework/
 │   │   ├── pages/
 │   │   ├── services/
 │   │   ├── context/
-│   │   └── __tests__/
+│   │   └── __tests__/               # Frontend unit tests (Jest)
 │   └── package.json
 ├── ansible/
 │   ├── k8s/
@@ -63,7 +76,7 @@ atlas-reliability-framework/
 │       ├── deploy-application.yml       # Deploy backend only
 │       ├── deploy-frontend.yml          # Deploy frontend only
 │       └── deploy-full-stack.yml        # Deploy everything
-├── tests/                           # Backend tests
+├── venv/                            # Python virtual environment (project-wide)
 └── README.md
 ```
 
@@ -251,8 +264,9 @@ CREATE TABLE users (
 
 ### Backend Tests
 ```bash
+cd backend
 pytest tests/ -v
-pytest tests/ --cov=app
+pytest tests/ --cov=backend
 ```
 
 ### Frontend Tests
@@ -306,9 +320,10 @@ kubectl logs -f -n kube-system deployment/traefik
 
 ### Backend Local Development
 ```bash
-cd app
+cd backend
+source ../venv/bin/activate
 pip install -r requirements.txt
-pytest ../tests/ -v
+pytest tests/ -v
 uvicorn main:app --reload
 ```
 
@@ -353,7 +368,7 @@ sudo kubectl port-forward -n kube-system service/traefik 80:80 --address 0.0.0.0
 ```
 
 ### CORS Errors
-Verify CORS middleware is enabled in `app/main.py`:
+Verify CORS middleware is enabled in `backend/main.py`:
 ```python
 app.add_middleware(
     CORSMiddleware,
