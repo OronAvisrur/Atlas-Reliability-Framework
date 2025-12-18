@@ -9,11 +9,11 @@
     - name: Build Docker image
       shell: docker build -t {{ app_image }}:{{ app_version }} .
       args:
-        chdir: "{{ playbook_dir }}/../../app"
-
+        chdir: "{{ playbook_dir }}/../../backend"
+    
     - name: Import image to K3s
       shell: docker save {{ app_image }}:{{ app_version }} | sudo k3s ctr images import -
-
+    
     - name: Apply Application manifests
       shell: kubectl apply -f ../k8s/{{ item }}
       loop:
