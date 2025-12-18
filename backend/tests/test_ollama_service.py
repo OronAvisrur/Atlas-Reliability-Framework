@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
-from app.services.ollama_service import OllamaService
+from backend.services.ollama_service import OllamaService
 
 
 @pytest.fixture

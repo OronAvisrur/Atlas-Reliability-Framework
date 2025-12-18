@@ -1,6 +1,6 @@
 import pytest
 from datetime import datetime
-from app.models.schemas import (
+from backend.models.schemas import (
     HealthResponse,
     ServiceInfoResponse,
     FailureResponse,

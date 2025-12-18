@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Response
-from app.models.schemas import HealthResponse
-from app.core.metrics import record_request, get_metrics
+from backend.models.schemas import HealthResponse
+from backend.core.metrics import record_request, get_metrics
 
 router = APIRouter()
 

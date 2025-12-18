@@ -1,7 +1,7 @@
 import time
 import httpx
 from typing import Dict
-from app.core.metrics import record_external_call, record_external_call_duration
+from backend.core.metrics import record_external_call, record_external_call_duration
 
 
 class GoogleBooksService:

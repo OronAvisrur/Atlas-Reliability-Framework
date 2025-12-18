@@ -1,5 +1,5 @@
 import pytest
-from app.core.config import Settings
+from backend.core.config import Settings
 
 
 class TestSettings:

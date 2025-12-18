@@ -1,8 +1,8 @@
 import time
 import httpx
 from typing import Dict
-from app.core.config import settings
-from app.core.metrics import record_external_call, record_external_call_duration
+from backend.core.config import settings
+from backend.core.metrics import record_external_call, record_external_call_duration
 
 
 class OllamaService:

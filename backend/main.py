@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routes import health, books, auth
-from app.core.config import settings
+from backend.api.routes import health, books, auth
+from backend.core.config import settings
 
 
 def create_app() -> FastAPI:

@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import patch
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from app.api.routes.health import router
+from backend.api.routes.health import router
 
 
 app = FastAPI()

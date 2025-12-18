@@ -1,10 +1,10 @@
 import time
 from fastapi import APIRouter, HTTPException, Depends
-from app.models.schemas import BookSearchRequest, BookSearchResponse, BookResult
-from app.services.ollama_service import ollama_service
-from app.services.google_books_service import google_books_service
-from app.core.metrics import record_request, record_request_duration
-from app.core.dependencies import get_current_user
+from backend.models.schemas import BookSearchRequest, BookSearchResponse, BookResult
+from backend.services.ollama_service import ollama_service
+from backend.services.google_books_service import google_books_service
+from backend.core.metrics import record_request, record_request_duration
+from backend.core.dependencies import get_current_user
 
 router = APIRouter()
 

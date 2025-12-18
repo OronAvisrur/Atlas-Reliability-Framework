@@ -1,5 +1,5 @@
 import pytest
-from app.core.metrics import (
+from backend.core.metrics import (
     record_request,
     record_request_duration,
     record_external_call,

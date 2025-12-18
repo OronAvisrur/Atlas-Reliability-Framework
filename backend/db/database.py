@@ -2,7 +2,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from contextlib import contextmanager
 
-from app.core.config import settings
+from backend.core.config import settings
 
 
 def get_connection():

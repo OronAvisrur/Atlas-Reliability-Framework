@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import Mock, patch
 
-from app.services.auth_service import register_user, authenticate_user, generate_token, verify_token
+from backend.services.auth_service import register_user, authenticate_user, generate_token, verify_token
 
 
 @pytest.fixture

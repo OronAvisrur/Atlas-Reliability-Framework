@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
-from app.services.google_books_service import GoogleBooksService
+from backend.services.google_books_service import GoogleBooksService
 
 
 @pytest.fixture
