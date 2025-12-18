@@ -50,8 +50,8 @@ class TestBooksRouter:
     def test_search_books_success(self, mock_keywords, mock_google_books_result, mock_user):
         app.dependency_overrides[get_current_user] = lambda: mock_user
         try:
-            with patch("app.api.routes.books.ollama_service.extract_keywords", new_callable=AsyncMock) as mock_ollama:
-                with patch("app.api.routes.books.google_books_service.search_books", new_callable=AsyncMock) as mock_google:
+            with patch("backend.api.routes.books.ollama_service.extract_keywords", new_callable=AsyncMock) as mock_ollama:
+                with patch("backend.api.routes.books.google_books_service.search_books", new_callable=AsyncMock) as mock_google:
                     mock_ollama.return_value = mock_keywords
                     mock_google.return_value = mock_google_books_result
                     
@@ -69,8 +69,8 @@ class TestBooksRouter:
     def test_search_books_empty_results(self, mock_keywords, mock_user):
         app.dependency_overrides[get_current_user] = lambda: mock_user
         try:
-            with patch("app.api.routes.books.ollama_service.extract_keywords", new_callable=AsyncMock) as mock_ollama:
-                with patch("app.api.routes.books.google_books_service.search_books", new_callable=AsyncMock) as mock_google:
+            with patch("backend.api.routes.books.ollama_service.extract_keywords", new_callable=AsyncMock) as mock_ollama:
+                with patch("backend.api.routes.books.google_books_service.search_books", new_callable=AsyncMock) as mock_google:
                     mock_ollama.return_value = mock_keywords
                     mock_google.return_value = {"total_items": 0, "items": []}
                     
@@ -95,7 +95,7 @@ class TestBooksRouter:
     def test_search_books_ollama_error(self, mock_user):
         app.dependency_overrides[get_current_user] = lambda: mock_user
         try:
-            with patch("app.api.routes.books.ollama_service.extract_keywords", new_callable=AsyncMock) as mock_ollama:
+            with patch("backend.api.routes.books.ollama_service.extract_keywords", new_callable=AsyncMock) as mock_ollama:
                 mock_ollama.side_effect = Exception("Ollama Error")
                 
                 response = client.post(
@@ -110,8 +110,8 @@ class TestBooksRouter:
     def test_search_books_google_error(self, mock_keywords, mock_user):
         app.dependency_overrides[get_current_user] = lambda: mock_user
         try:
-            with patch("app.api.routes.books.ollama_service.extract_keywords", new_callable=AsyncMock) as mock_ollama:
-                with patch("app.api.routes.books.google_books_service.search_books", new_callable=AsyncMock) as mock_google:
+            with patch("backend.api.routes.books.ollama_service.extract_keywords", new_callable=AsyncMock) as mock_ollama:
+                with patch("backend.api.routes.books.google_books_service.search_books", new_callable=AsyncMock) as mock_google:
                     mock_ollama.return_value = mock_keywords
                     mock_google.side_effect = Exception("Google API Error")
                     

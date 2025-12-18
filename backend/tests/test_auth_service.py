@@ -18,7 +18,7 @@ def mock_cursor():
 
 
 def test_register_user_success(mock_conn, mock_cursor):
-    with patch("app.services.auth_service.hash_password", return_value="hashed_pass"):
+    with patch("backend.services.auth_service.hash_password", return_value="hashed_pass"):
         mock_conn.cursor.return_value = mock_cursor
         mock_cursor.fetchone.side_effect = [None, (1, "testuser", True)]
         
@@ -39,7 +39,7 @@ def test_register_user_duplicate(mock_conn, mock_cursor):
 
 
 def test_authenticate_user_success(mock_conn, mock_cursor):
-    with patch("app.services.auth_service.verify_password", return_value=False):
+    with patch("backend.services.auth_service.verify_password", return_value=False):
         mock_conn.cursor.return_value = mock_cursor
         mock_cursor.fetchone.return_value = (1, "testuser", "hashed", True)
         
@@ -56,7 +56,7 @@ def test_authenticate_user_not_found(mock_conn, mock_cursor):
 
 
 def test_authenticate_user_inactive(mock_conn, mock_cursor):
-    with patch("app.services.auth_service.verify_password", return_value=True):
+    with patch("backend.services.auth_service.verify_password", return_value=True):
         mock_conn.cursor.return_value = mock_cursor
         mock_cursor.fetchone.return_value = (1, "testuser", "hashed", False)
         

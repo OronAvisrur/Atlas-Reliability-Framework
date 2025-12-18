@@ -32,8 +32,8 @@ def test_books_search_with_invalid_token():
 def test_books_search_with_valid_token(mock_current_user):
     app.dependency_overrides[get_current_user] = lambda: mock_current_user
     try:
-        with patch("app.services.ollama_service.ollama_service.extract_keywords") as mock_ollama:
-            with patch("app.services.google_books_service.google_books_service.search_books") as mock_books:
+        with patch("backend.services.ollama_service.ollama_service.extract_keywords") as mock_ollama:
+            with patch("backend.services.google_books_service.google_books_service.search_books") as mock_books:
                 mock_ollama.return_value = {"keyword_1": "action", "keyword_2": "books", "keyword_3": "adventure"}
                 mock_books.return_value = {"total_items": 10, "items": []}
                 
@@ -51,8 +51,8 @@ def test_books_search_with_valid_token(mock_current_user):
 def test_books_search_inactive_user():
     inactive_user = {"id": 1, "username": "inactive", "is_active": False}
     
-    with patch("app.core.dependencies.verify_token", return_value="inactive"):
-        with patch("app.core.dependencies.get_connection") as mock_get_conn:
+    with patch("backend.core.dependencies.verify_token", return_value="inactive"):
+        with patch("backend.core.dependencies.get_connection") as mock_get_conn:
             mock_conn = Mock()
             mock_cursor = Mock()
             mock_cursor.fetchone.return_value = (1, "inactive", False)

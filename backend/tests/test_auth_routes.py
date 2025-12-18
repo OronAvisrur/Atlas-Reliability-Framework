@@ -8,8 +8,8 @@ client = TestClient(app)
 
 
 def test_register_success():
-    with patch("app.api.routes.auth.get_db") as mock_get_db:
-        with patch("app.api.routes.auth.register_user") as mock_register:
+    with patch("backend.api.routes.auth.get_db") as mock_get_db:
+        with patch("backend.api.routes.auth.register_user") as mock_register:
             mock_conn = Mock()
             mock_get_db.return_value.__enter__.return_value = mock_conn
             mock_register.return_value = {"id": 1, "username": "testuser", "is_active": True}
@@ -21,8 +21,8 @@ def test_register_success():
 
 
 def test_register_duplicate_username():
-    with patch("app.api.routes.auth.get_db") as mock_get_db:
-        with patch("app.api.routes.auth.register_user") as mock_register:
+    with patch("backend.api.routes.auth.get_db") as mock_get_db:
+        with patch("backend.api.routes.auth.register_user") as mock_register:
             mock_conn = Mock()
             mock_get_db.return_value.__enter__.return_value = mock_conn
             mock_register.side_effect = ValueError("Username already exists")
@@ -40,9 +40,9 @@ def test_register_invalid_username():
 
 
 def test_login_success():
-    with patch("app.api.routes.auth.get_db") as mock_get_db:
-        with patch("app.api.routes.auth.authenticate_user") as mock_auth:
-            with patch("app.api.routes.auth.generate_token") as mock_token:
+    with patch("backend.api.routes.auth.get_db") as mock_get_db:
+        with patch("backend.api.routes.auth.authenticate_user") as mock_auth:
+            with patch("backend.api.routes.auth.generate_token") as mock_token:
                 mock_conn = Mock()
                 mock_get_db.return_value.__enter__.return_value = mock_conn
                 mock_auth.return_value = {"id": 1, "username": "testuser", "is_active": True}
@@ -56,8 +56,8 @@ def test_login_success():
 
 
 def test_login_invalid_credentials():
-    with patch("app.api.routes.auth.get_db") as mock_get_db:
-        with patch("app.api.routes.auth.authenticate_user") as mock_auth:
+    with patch("backend.api.routes.auth.get_db") as mock_get_db:
+        with patch("backend.api.routes.auth.authenticate_user") as mock_auth:
             mock_conn = Mock()
             mock_get_db.return_value.__enter__.return_value = mock_conn
             mock_auth.side_effect = ValueError("Invalid credentials")
