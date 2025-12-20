@@ -1,6 +1,6 @@
 # Atlas Reliability Framework
 
-FastAPI service with PostgreSQL authentication, Ollama LLM integration for book search, deployed on Kubernetes with high availability and monitoring. Includes React frontend for user interaction with Traefik Ingress routing.
+FastAPI service with PostgreSQL authentication, Ollama LLM integration for book search, deployed on Kubernetes with high availability and monitoring. Includes React frontend for user interaction with Traefik Ingress routing and Jenkins CI/CD automation.
 
 ## Architecture
 
@@ -25,6 +25,11 @@ FastAPI service with PostgreSQL authentication, Ollama LLM integration for book 
 **Networking:**
 - **Traefik Ingress** - Production-ready routing and load balancing
 - **CORS** - Cross-origin resource sharing enabled
+
+**CI/CD:**
+- **Jenkins** - Automated testing, building, and deployment
+- **Docker** - Container image building
+- **Git** - Version control and pipeline triggers
 
 ## Project Structure
 ```
@@ -76,6 +81,8 @@ atlas-reliability-framework/
 │       ├── deploy-application.yml       # Deploy backend only
 │       ├── deploy-frontend.yml          # Deploy frontend only
 │       └── deploy-full-stack.yml        # Deploy everything
+├── Jenkinsfile-backend              # Backend CI/CD pipeline
+├── Jenkinsfile-frontend             # Frontend CI/CD pipeline
 ├── venv/                            # Python virtual environment (project-wide)
 └── README.md
 ```
@@ -88,6 +95,97 @@ atlas-reliability-framework/
 - K3s
 - Ansible
 - kubectl
+- Jenkins (for CI/CD)
+
+## 🔄 CI/CD Pipeline
+
+This project includes automated CI/CD pipelines for both backend and frontend services using Jenkins.
+
+### Pipeline Architecture
+```
+GitHub Push → Jenkins → Test → Build → Deploy to K3s
+```
+
+### Backend Pipeline (`Jenkinsfile-backend`)
+
+**Stages:**
+1. **Checkout** - Pull latest code from GitHub
+2. **Test Backend** - Run pytest suite (58 tests)
+3. **Build Docker Image** - Create containerized backend
+4. **Import to K3s** - Load image into Kubernetes cluster
+5. **Deploy to K3s** - Deploy via Ansible playbook
+
+**Trigger:** Automatic on push to `master` branch
+
+**Jenkins Job:** `atlas-backend-pipeline`
+
+### Frontend Pipeline (`Jenkinsfile-frontend`)
+
+**Stages:**
+1. **Checkout** - Pull latest code from GitHub
+2. **Build Docker Image** - Create containerized frontend
+3. **Import to K3s** - Load image into Kubernetes cluster
+4. **Deploy to K3s** - Deploy via Ansible playbook
+
+**Trigger:** Automatic on push to `master` branch
+
+**Jenkins Job:** `atlas-frontend-pipeline`
+
+### CI/CD Setup Instructions
+
+#### 1. Configure Jenkins Permissions
+
+Allow Jenkins to run K3s commands without password:
+```bash
+sudo visudo
+```
+
+Add the following line:
+```
+jenkins ALL=(ALL) NOPASSWD: /usr/local/bin/k3s
+```
+
+#### 2. Create Backend Pipeline
+
+1. Jenkins → New Item → `atlas-backend-pipeline` → Pipeline
+2. Configure:
+   - **Definition**: Pipeline script from SCM
+   - **SCM**: Git
+   - **Repository URL**: `https://github.com/YOUR-USERNAME/Atlas-Reliability-Framework.git`
+   - **Branch**: `*/master`
+   - **Script Path**: `Jenkinsfile-backend`
+3. Save
+
+#### 3. Create Frontend Pipeline
+
+1. Jenkins → New Item → `atlas-frontend-pipeline` → Pipeline
+2. Configure:
+   - **Definition**: Pipeline script from SCM
+   - **SCM**: Git
+   - **Repository URL**: `https://github.com/YOUR-USERNAME/Atlas-Reliability-Framework.git`
+   - **Branch**: `*/master`
+   - **Script Path**: `Jenkinsfile-frontend`
+3. Save
+
+#### 4. Trigger Pipelines
+
+**Option 1 - Manual:**
+- Click "Build Now" in Jenkins UI
+
+**Option 2 - Automatic (on Git push):**
+- Configure GitHub webhook pointing to Jenkins
+- Pipelines trigger automatically on code push
+
+### CI/CD Pipeline Flow
+```mermaid
+graph LR
+    A[Git Push] --> B[Jenkins Detects Change]
+    B --> C[Run Tests]
+    C --> D[Build Docker Image]
+    D --> E[Import to K3s]
+    E --> F[Deploy to Cluster]
+    F --> G[Live Service]
+```
 
 ## Quick Start
 
@@ -98,8 +196,18 @@ ansible-playbook playbooks/setup-postgres.yml
 ```
 
 ### 2. Deploy Full Stack (Backend + Frontend)
+
+**Manual Deployment:**
 ```bash
 ansible-playbook playbooks/deploy-full-stack.yml
+```
+
+**OR Deploy via CI/CD:**
+```bash
+# Just push to GitHub - Jenkins handles the rest!
+git add .
+git commit -m "deploy: update application"
+git push origin master
 ```
 
 **OR Deploy Separately:**
@@ -276,6 +384,9 @@ npm test
 npm test -- --coverage
 ```
 
+### CI/CD Test Automation
+Backend tests run automatically in Jenkins pipeline on every commit.
+
 ## Monitoring
 
 ### Prometheus Metrics
@@ -294,6 +405,11 @@ kubectl logs -f deployment/atlas-service
 kubectl logs -f -n kube-system deployment/traefik
 ```
 
+### Jenkins Pipeline Monitoring
+- View pipeline status in Jenkins UI
+- Check build history and logs
+- Monitor deployment success rate
+
 ## High Availability
 
 ### Application Layer
@@ -302,6 +418,7 @@ kubectl logs -f -n kube-system deployment/traefik
 - **Ingress:** Traefik with automatic load balancing
 - **Automatic restart** on health check failure
 - **Init containers** ensure PostgreSQL is ready
+- **CI/CD:** Automated testing prevents broken deployments
 
 ### Database Layer
 - **PostgreSQL StatefulSet** with persistent storage (1Gi)
@@ -315,6 +432,7 @@ kubectl logs -f -n kube-system deployment/traefik
 - **Kubernetes Secrets** for PostgreSQL credentials
 - **Frontend:** Token stored in localStorage
 - **Backend:** JWT validation on protected endpoints
+- **CI/CD:** Automated testing catches security issues early
 
 ## Development
 
@@ -336,7 +454,67 @@ npm test
 npm run build
 ```
 
+### CI/CD Development Workflow
+```bash
+# 1. Make changes
+git checkout -b feature/my-feature
+
+# 2. Test locally
+cd backend && pytest tests/ -v
+
+# 3. Commit and push
+git add .
+git commit -m "feat: add new feature"
+git push origin feature/my-feature
+
+# 4. Merge to master (triggers CI/CD)
+git checkout master
+git merge feature/my-feature
+git push origin master
+
+# 5. Jenkins automatically: tests → builds → deploys
+```
+
 ## Troubleshooting
+
+### CI/CD Issues
+
+#### Pipeline Fails at Test Stage
+```bash
+# Check test logs in Jenkins
+# Run tests locally to debug
+cd backend
+pytest tests/ -v --tb=short
+```
+
+#### Pipeline Fails at Build Stage
+```bash
+# Verify Dockerfile syntax
+docker build -t test-image ./backend
+
+# Check Docker daemon
+sudo systemctl status docker
+```
+
+#### Pipeline Fails at Deploy Stage
+```bash
+# Check Ansible playbook
+ansible-playbook playbooks/deploy-application.yml --check
+
+# Verify K3s cluster
+kubectl get nodes
+kubectl get pods
+```
+
+#### Jenkins Can't Import to K3s
+```bash
+# Verify sudo permissions
+sudo visudo
+# Ensure: jenkins ALL=(ALL) NOPASSWD: /usr/local/bin/k3s
+
+# Test manually
+sudo -u jenkins sudo k3s ctr version
+```
 
 ### Ingress Issues
 ```bash
@@ -381,9 +559,14 @@ app.add_middleware(
 
 ### Rebuild & Redeploy
 ```bash
+# Manual
 cd ansible
 ansible-playbook playbooks/deploy-full-stack.yml
 kubectl apply -f k8s/ingress.yaml
+
+# OR via CI/CD
+git commit --allow-empty -m "trigger: redeploy"
+git push origin master
 ```
 
 ### Clear Everything
@@ -414,6 +597,11 @@ kubectl delete pvc postgres-pvc
 **DNS:**
 - Configure Route53 for domain routing
 - Use ACM for SSL certificates
+
+**CI/CD:**
+- Configure Jenkins with AWS IAM roles
+- Use ECR for Docker image registry
+- Deploy to EKS cluster instead of K3s
 
 ## Color Scheme
 
