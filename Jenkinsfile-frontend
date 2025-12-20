@@ -1,0 +1,47 @@
+pipeline {
+    agent any
+    
+    environment {
+        DOCKER_IMAGE = "atlas-frontend:${env.BUILD_NUMBER}"
+        GIT_URL = "https://github.com/OronAvisrur/Atlas-Reliability-Framework.git"
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                git url: "${GIT_URL}", branch: "master"
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                dir('frontend') {
+                    sh "docker build -t ${DOCKER_IMAGE} ."
+                }
+            }
+        }
+        
+        stage('Import to K3s') {
+            steps {
+                sh "docker save ${DOCKER_IMAGE} | sudo k3s ctr images import -"
+            }
+        }
+        
+        stage('Deploy to K3s') {
+            steps {
+                dir('ansible') {
+                    sh "ansible-playbook playbooks/deploy-frontend.yml"
+                }
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo "✅ Frontend pipeline completed successfully!"
+        }
+        failure {
+            echo "❌ Frontend pipeline failed!"
+        }
+    }
+}
