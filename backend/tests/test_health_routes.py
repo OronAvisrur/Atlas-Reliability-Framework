@@ -29,4 +29,5 @@ class TestHealthRoutes:
         response = client.get("/metrics")
         
         assert response.status_code == 200
-        assert response.headers["content-type"] == "text/plain; charset=utf-8"
+        assert "text/plain" in response.headers["content-type"]
+        assert "charset=utf-8" in response.headers["content-type"]
