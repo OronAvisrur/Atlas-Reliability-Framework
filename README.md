@@ -123,23 +123,23 @@ graph TB
 ## 📸 Screenshots
 
 ### Landing Page
-![Landing Page](assets/screenshots/home.png)
+![Landing Page](assets/screenshots/home.jpg)
 *Clean, modern interface with system metrics and call-to-action*
 
 ### User Registration
-![Registration](assets/screenshots/register.png)
+![Registration](assets/screenshots/register.jpg)
 *Secure account creation with validation*
 
 ### Login Interface
-![Login](assets/screenshots/login.png)
+![Login](assets/screenshots/login.jpg)
 *JWT-based authentication with 30-minute token expiration*
 
 ### Book Search
-![Search Interface](assets/screenshots/search.png)
+![Search Interface](assets/screenshots/search.jpg)
 *AI-powered natural language search with real-time results*
 
 ### Search Results
-![Search Results](assets/screenshots/results.png)
+![Search Results](assets/screenshots/results.jpg)
 *Rich book information including thumbnails, authors, and descriptions*
 
 ---
