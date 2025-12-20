@@ -1,0 +1,74 @@
+pipeline {
+    agent any
+    
+    environment {
+        DOCKER_IMAGE = "atlas-backend:${env.BUILD_NUMBER}"
+        GIT_URL = "https://github.com/OronAvisrur/Atlas-Reliability-Framework.git"
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                git url: "${GIT_URL}", branch: "master"
+            }
+        }
+        
+        stage('Test Backend') {
+            steps {
+                dir('backend') {
+                    script {
+                        sh '''
+                        python3 -m venv venv
+                        . venv/bin/activate
+                        pip install --upgrade pip
+                        pip install fastapi \
+                            uvicorn[standard] \
+                            httpx \
+                            prometheus-client \
+                            psycopg2-binary \
+                            python-jose[cryptography] \
+                            passlib[bcrypt] \
+                            bcrypt \
+                            pydantic-settings \
+                            pytest \
+                            pytest-asyncio \
+                            sqlalchemy
+                        python -m pytest tests/ -v --tb=short
+                        '''
+                    }
+                }
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                dir('backend') {
+                    sh "docker build -t ${DOCKER_IMAGE} ."
+                }
+            }
+        }
+        
+        stage('Import to K3s') {
+            steps {
+                sh "docker save ${DOCKER_IMAGE} | sudo k3s ctr images import -"
+            }
+        }
+        
+        stage('Deploy to K3s') {
+            steps {
+                dir('ansible') {
+                    sh "ansible-playbook playbooks/deploy-application.yml"
+                }
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo "✅ Pipeline completed successfully!"
+        }
+        failure {
+            echo "❌ Pipeline failed!"
+        }
+    }
+}
